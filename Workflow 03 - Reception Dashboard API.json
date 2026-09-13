@@ -1,0 +1,777 @@
+{
+  "name": "Workflow 03 - Reception Dashboard API",
+  "nodes": [
+    {
+      "id": "node-webhook-get",
+      "name": "Dashboard Webhook (GET)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1600, -120],
+      "webhookId": "a1b2c3d4-0001-4000-8000-000000000001",
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dashboard",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-webhook-post",
+      "name": "Dashboard Webhook (POST)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1600, 120],
+      "webhookId": "a1b2c3d4-0002-4000-8000-000000000002",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dashboard",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-check-key",
+      "name": "Check X-Dashboard-Key",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-1380, 0],
+      "notes": "TRUE = header matches $env.DASHBOARD_API_KEY, proceed. FALSE = missing/wrong key -> 401.",
+      "notesInFlow": false,
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.headers && $json.headers['x-dashboard-key']) || '' }}",
+              "rightValue": "={{ $env.DASHBOARD_API_KEY }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "node-err-unauthorized",
+      "name": "Error - Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-1160, 220],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: \"Unauthorized\" } }}",
+        "options": {
+          "responseCode": 401
+        }
+      }
+    },
+    {
+      "id": "node-normalize",
+      "name": "Normalize API Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1160, -60],
+      "notes": "Merges GET query params and POST body into one flat shape. route = body.action (POST) or query.resource (GET).",
+      "notesInFlow": false,
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst query = item.query || {};\nconst body = item.body || {};\n\nfunction toIntOrNull(v) {\n  if (v === undefined || v === null || v === '') return null;\n  const n = Number(v);\n  return Number.isInteger(n) ? n : null;\n}\n\nfunction toStrOrNull(v) {\n  if (v === undefined || v === null) return null;\n  const s = String(v).trim();\n  return s === '' ? null : s;\n}\n\nconst route = (body && body.action) ? toStrOrNull(body.action) : toStrOrNull(query.resource);\n\nreturn [{ json: {\n  route: route,\n  date: toStrOrNull(query.date),\n  doctor_id: toIntOrNull(query.doctor_id),\n  status: toStrOrNull(query.status),\n  search: toStrOrNull(query.search),\n  appointment_id: toIntOrNull(body.appointment_id),\n  new_status: toStrOrNull(body.status)\n} }];"
+      }
+    },
+    {
+      "id": "node-router",
+      "name": "API Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [-940, -60],
+      "notes": "Outputs in order: 0=today, 1=appointments, 2=doctors, 3=patients, 4=statistics, 5=update_status, 6=fallback (unknown route).",
+      "notesInFlow": false,
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.route}}", "rightValue": "today", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "today"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.route}}", "rightValue": "appointments", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "appointments"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.route}}", "rightValue": "doctors", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "doctors"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.route}}", "rightValue": "patients", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "patients"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.route}}", "rightValue": "statistics", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "statistics"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.route}}", "rightValue": "update_status", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "update_status"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+
+    {
+      "id": "node-query-today",
+      "name": "Query Today's Appointments",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [-680, -420],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  a.appointment_id,\n  a.start_time,\n  a.end_time,\n  a.status,\n  d.doctor_id,\n  d.doctor_name,\n  p.patient_id,\n  p.patient_name,\n  p.whatsapp_number\nFROM appointments a\nJOIN doctors d ON d.doctor_id = a.doctor_id\nJOIN patients p ON p.patient_id = a.patient_id\nWHERE a.appointment_date = (NOW() AT TIME ZONE 'Asia/Kolkata')::DATE\nORDER BY a.start_time;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": { "id": "POSTGRES_CRED_ID", "name": "Hospital Postgres" }
+      }
+    },
+    {
+      "id": "node-format-today",
+      "name": "Format Today Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-460, -420],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map(i => i.json);\nreturn [{ json: { success: true, appointments: rows } }];"
+      }
+    },
+    {
+      "id": "node-respond-today",
+      "name": "Respond - Today",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-240, -420],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+
+    {
+      "id": "node-validate-filters",
+      "name": "Validate Filters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-680, -260],
+      "notes": "Validates date = a real YYYY-MM-DD calendar date (or null), doctor_id = integer or null, status in enum or null. Rejects malformed calendar dates like 2026-02-30 or 2026-13-01 without relying on PostgreSQL to catch them.",
+      "notesInFlow": false,
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst validStatuses = ['SCHEDULED', 'COMPLETED', 'CANCELLED'];\nlet valid = true;\n\nfunction isValidCalendarDate(dateStr) {\n  const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(dateStr);\n  if (!match) return false;\n  const year = parseInt(match[1], 10);\n  const month = parseInt(match[2], 10);\n  const day = parseInt(match[3], 10);\n  if (month < 1 || month > 12) return false;\n  if (day < 1) return false;\n  const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);\n  const daysInMonth = [31, isLeapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];\n  if (day > daysInMonth[month - 1]) return false;\n  return true;\n}\n\nif (item.date !== null && !isValidCalendarDate(item.date)) valid = false;\nif (item.doctor_id !== null && !Number.isInteger(item.doctor_id)) valid = false;\nif (item.status !== null && !validStatuses.includes(item.status)) valid = false;\n\nreturn [{ json: { ...item, _filtersValid: valid } }];"
+      }
+    },
+    {
+      "id": "node-filters-valid",
+      "name": "Filters Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-460, -260],
+      "notesInFlow": false,
+      "notes": "TRUE = proceed to query. FALSE = 400 Bad Request.",
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "leftValue": "={{$json._filtersValid}}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "node-err-bad-filters",
+      "name": "Error - Bad Request (Filters)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-240, -140],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: \"Invalid request parameters\" } }}",
+        "options": { "responseCode": 400 }
+      }
+    },
+    {
+      "id": "node-query-appointments",
+      "name": "Query Filtered Appointments",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [-240, -320],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  a.appointment_id,\n  a.start_time,\n  a.end_time,\n  a.status,\n  d.doctor_id,\n  d.doctor_name,\n  p.patient_id,\n  p.patient_name,\n  p.whatsapp_number\nFROM appointments a\nJOIN doctors d ON d.doctor_id = a.doctor_id\nJOIN patients p ON p.patient_id = a.patient_id\nWHERE ($1::date IS NULL OR a.appointment_date = $1::date)\n  AND ($2::int IS NULL OR a.doctor_id = $2::int)\n  AND ($3::text IS NULL OR a.status = $3::text)\n  AND (\n    $4::text IS NULL\n    OR p.patient_name ILIKE '%' || $4 || '%'\n    OR p.whatsapp_number ILIKE '%' || $4 || '%'\n  )\nORDER BY a.start_time;",
+        "options": {
+          "queryReplacement": "={{ [ $json.date, $json.doctor_id, $json.status, $json.search ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": { "id": "POSTGRES_CRED_ID", "name": "Hospital Postgres" }
+      }
+    },
+    {
+      "id": "node-format-appointments",
+      "name": "Format Appointments Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-20, -320],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map(i => i.json);\nreturn [{ json: { success: true, appointments: rows } }];"
+      }
+    },
+    {
+      "id": "node-respond-appointments",
+      "name": "Respond - Appointments",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [200, -320],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+
+    {
+      "id": "node-query-doctors",
+      "name": "Query Doctors",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [-680, -20],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  doctor_id,\n  doctor_name,\n  specialization\nFROM doctors\nORDER BY doctor_name;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": { "id": "POSTGRES_CRED_ID", "name": "Hospital Postgres" }
+      }
+    },
+    {
+      "id": "node-format-doctors",
+      "name": "Format Doctors Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-460, -20],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map(i => i.json);\nreturn [{ json: { success: true, doctors: rows } }];"
+      }
+    },
+    {
+      "id": "node-respond-doctors",
+      "name": "Respond - Doctors",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-240, -20],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+
+    {
+      "id": "node-query-patients",
+      "name": "Query Patients",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [-680, 140],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  p.patient_id,\n  p.patient_name,\n  p.whatsapp_number,\n  COALESCE(\n    json_agg(\n      json_build_object(\n        'appointment_id', a.appointment_id,\n        'start_time', a.start_time,\n        'status', a.status,\n        'doctor_name', d.doctor_name\n      )\n      ORDER BY a.start_time DESC\n    ) FILTER (WHERE a.appointment_id IS NOT NULL),\n    '[]'::json\n  ) AS appointment_history\nFROM patients p\nLEFT JOIN appointments a ON a.patient_id = p.patient_id\nLEFT JOIN doctors d ON d.doctor_id = a.doctor_id\nGROUP BY p.patient_id, p.patient_name, p.whatsapp_number\nORDER BY p.patient_name NULLS LAST;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": { "id": "POSTGRES_CRED_ID", "name": "Hospital Postgres" }
+      }
+    },
+    {
+      "id": "node-format-patients",
+      "name": "Format Patients Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-460, 140],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map(i => i.json);\nreturn [{ json: { success: true, patients: rows } }];"
+      }
+    },
+    {
+      "id": "node-respond-patients",
+      "name": "Respond - Patients",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-240, 140],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+
+    {
+      "id": "node-query-statistics",
+      "name": "Query Statistics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [-680, 300],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  COUNT(*) FILTER (\n    WHERE appointment_date = (NOW() AT TIME ZONE 'Asia/Kolkata')::DATE\n  )::int AS today_total,\n  COUNT(*) FILTER (\n    WHERE appointment_date = (NOW() AT TIME ZONE 'Asia/Kolkata')::DATE\n    AND status = 'SCHEDULED'\n  )::int AS today_scheduled,\n  COUNT(*) FILTER (\n    WHERE appointment_date = (NOW() AT TIME ZONE 'Asia/Kolkata')::DATE\n    AND status = 'COMPLETED'\n  )::int AS today_completed,\n  COUNT(*) FILTER (\n    WHERE appointment_date = (NOW() AT TIME ZONE 'Asia/Kolkata')::DATE\n    AND status = 'CANCELLED'\n  )::int AS today_cancelled\nFROM appointments;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": { "id": "POSTGRES_CRED_ID", "name": "Hospital Postgres" }
+      }
+    },
+    {
+      "id": "node-format-statistics",
+      "name": "Format Statistics Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-460, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const row = $input.first()?.json ?? { today_total: 0, today_scheduled: 0, today_completed: 0, today_cancelled: 0 };\nreturn [{ json: { success: true, statistics: {\n  today_total: row.today_total ?? 0,\n  today_scheduled: row.today_scheduled ?? 0,\n  today_completed: row.today_completed ?? 0,\n  today_cancelled: row.today_cancelled ?? 0\n} } }];"
+      }
+    },
+    {
+      "id": "node-respond-statistics",
+      "name": "Respond - Statistics",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-240, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+
+    {
+      "id": "node-validate-update",
+      "name": "Validate Update Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-680, 460],
+      "notes": "appointment_id must be an integer; new_status must be COMPLETED or CANCELLED.",
+      "notesInFlow": false,
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst validNewStatuses = ['COMPLETED', 'CANCELLED'];\nconst valid = Number.isInteger(item.appointment_id) && validNewStatuses.includes(item.new_status);\nreturn [{ json: { ...item, _updateValid: valid } }];"
+      }
+    },
+    {
+      "id": "node-update-valid",
+      "name": "Update Input Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-460, 460],
+      "notesInFlow": false,
+      "notes": "TRUE = proceed to update. FALSE = 400 Bad Request.",
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "leftValue": "={{$json._updateValid}}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "node-err-bad-update",
+      "name": "Error - Bad Request (Update)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-240, 580],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: \"Invalid appointment_id or status\" } }}",
+        "options": { "responseCode": 400 }
+      }
+    },
+    {
+      "id": "node-update-status",
+      "name": "Update Appointment Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [-240, 400],
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true,
+      "notes": "Idempotent for same-status; only matches rows currently SCHEDULED or already equal to the requested status. Cross-terminal transitions return zero rows.",
+      "notesInFlow": false,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE appointments\nSET\n  status = $2,\n  updated_at = CASE\n    WHEN status = $2 THEN updated_at\n    ELSE NOW()\n  END\nWHERE appointment_id = $1\n  AND (status = 'SCHEDULED' OR status = $2)\nRETURNING appointment_id, status;",
+        "options": {
+          "queryReplacement": "={{ [ $json.appointment_id, $json.new_status ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": { "id": "POSTGRES_CRED_ID", "name": "Hospital Postgres" }
+      }
+    },
+    {
+      "id": "node-row-returned",
+      "name": "Was Row Returned?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-20, 400],
+      "notesInFlow": false,
+      "notes": "TRUE = update applied (or idempotent no-op). FALSE = need to distinguish not-found vs conflict.",
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.appointment_id !== undefined && $json.appointment_id !== null }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "node-format-update-success",
+      "name": "Format Update Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [200, 340],
+      "parameters": {
+        "jsCode": "const row = $input.first().json;\nreturn [{ json: {\n  success: true,\n  message: \"Appointment status updated\",\n  appointment: { appointment_id: row.appointment_id, status: row.status }\n} }];"
+      }
+    },
+    {
+      "id": "node-respond-update-success",
+      "name": "Respond - Update Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [420, 340],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+
+    {
+      "id": "node-check-existence",
+      "name": "Check Existence",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [200, 480],
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT appointment_id, status\nFROM appointments\nWHERE appointment_id = $1;",
+        "options": {
+          "queryReplacement": "={{ [ $('Validate Update Input').item.json.appointment_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": { "id": "POSTGRES_CRED_ID", "name": "Hospital Postgres" }
+      }
+    },
+    {
+      "id": "node-row-exists",
+      "name": "Row Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [420, 480],
+      "notesInFlow": false,
+      "notes": "TRUE = appointment exists but is in the opposite terminal status -> 409. FALSE = appointment_id does not exist -> 404.",
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.appointment_id !== undefined && $json.appointment_id !== null }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "node-err-not-found",
+      "name": "Error - Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [640, 580],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: \"Appointment not found\" } }}",
+        "options": { "responseCode": 404 }
+      }
+    },
+    {
+      "id": "node-conflict-message",
+      "name": "Determine Conflict Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 400],
+      "parameters": {
+        "jsCode": "const current = $input.first().json.status;\nconst requested = $('Validate Update Input').item.json.new_status;\nreturn [{ json: {\n  success: false,\n  error: `Appointment is already ${current} and cannot be changed to ${requested}`\n} }];"
+      }
+    },
+    {
+      "id": "node-err-conflict",
+      "name": "Error - Conflict",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [860, 400],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 409 }
+      }
+    },
+
+    {
+      "id": "node-err-unknown-resource",
+      "name": "Error - Unknown Resource",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-680, 620],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: \"Unknown resource or action\" } }}",
+        "options": { "responseCode": 400 }
+      }
+    },
+
+    {
+      "id": "node-handle-db-error",
+      "name": "Handle DB Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-680, 760],
+      "notes": "Shared error path for every Postgres node. Never forwards raw PostgreSQL error text to the client.",
+      "notesInFlow": false,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{ json: { success: false, error: \"A database error occurred\" } }];"
+      }
+    },
+    {
+      "id": "node-respond-server-error",
+      "name": "Respond - Server Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [-460, 760],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 500 }
+      }
+    }
+  ],
+  "connections": {
+    "Dashboard Webhook (GET)": {
+      "main": [[ { "node": "Check X-Dashboard-Key", "type": "main", "index": 0 } ]]
+    },
+    "Dashboard Webhook (POST)": {
+      "main": [[ { "node": "Check X-Dashboard-Key", "type": "main", "index": 0 } ]]
+    },
+    "Check X-Dashboard-Key": {
+      "main": [
+        [ { "node": "Normalize API Request", "type": "main", "index": 0 } ],
+        [ { "node": "Error - Unauthorized", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Normalize API Request": {
+      "main": [[ { "node": "API Router", "type": "main", "index": 0 } ]]
+    },
+    "API Router": {
+      "main": [
+        [ { "node": "Query Today's Appointments", "type": "main", "index": 0 } ],
+        [ { "node": "Validate Filters", "type": "main", "index": 0 } ],
+        [ { "node": "Query Doctors", "type": "main", "index": 0 } ],
+        [ { "node": "Query Patients", "type": "main", "index": 0 } ],
+        [ { "node": "Query Statistics", "type": "main", "index": 0 } ],
+        [ { "node": "Validate Update Input", "type": "main", "index": 0 } ],
+        [ { "node": "Error - Unknown Resource", "type": "main", "index": 0 } ]
+      ]
+    },
+
+    "Query Today's Appointments": {
+      "main": [
+        [ { "node": "Format Today Response", "type": "main", "index": 0 } ],
+        [ { "node": "Handle DB Error", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Format Today Response": {
+      "main": [[ { "node": "Respond - Today", "type": "main", "index": 0 } ]]
+    },
+
+    "Validate Filters": {
+      "main": [[ { "node": "Filters Valid?", "type": "main", "index": 0 } ]]
+    },
+    "Filters Valid?": {
+      "main": [
+        [ { "node": "Query Filtered Appointments", "type": "main", "index": 0 } ],
+        [ { "node": "Error - Bad Request (Filters)", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Query Filtered Appointments": {
+      "main": [
+        [ { "node": "Format Appointments Response", "type": "main", "index": 0 } ],
+        [ { "node": "Handle DB Error", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Format Appointments Response": {
+      "main": [[ { "node": "Respond - Appointments", "type": "main", "index": 0 } ]]
+    },
+
+    "Query Doctors": {
+      "main": [
+        [ { "node": "Format Doctors Response", "type": "main", "index": 0 } ],
+        [ { "node": "Handle DB Error", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Format Doctors Response": {
+      "main": [[ { "node": "Respond - Doctors", "type": "main", "index": 0 } ]]
+    },
+
+    "Query Patients": {
+      "main": [
+        [ { "node": "Format Patients Response", "type": "main", "index": 0 } ],
+        [ { "node": "Handle DB Error", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Format Patients Response": {
+      "main": [[ { "node": "Respond - Patients", "type": "main", "index": 0 } ]]
+    },
+
+    "Query Statistics": {
+      "main": [
+        [ { "node": "Format Statistics Response", "type": "main", "index": 0 } ],
+        [ { "node": "Handle DB Error", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Format Statistics Response": {
+      "main": [[ { "node": "Respond - Statistics", "type": "main", "index": 0 } ]]
+    },
+
+    "Validate Update Input": {
+      "main": [[ { "node": "Update Input Valid?", "type": "main", "index": 0 } ]]
+    },
+    "Update Input Valid?": {
+      "main": [
+        [ { "node": "Update Appointment Status", "type": "main", "index": 0 } ],
+        [ { "node": "Error - Bad Request (Update)", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Update Appointment Status": {
+      "main": [
+        [ { "node": "Was Row Returned?", "type": "main", "index": 0 } ],
+        [ { "node": "Handle DB Error", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Was Row Returned?": {
+      "main": [
+        [ { "node": "Format Update Success", "type": "main", "index": 0 } ],
+        [ { "node": "Check Existence", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Format Update Success": {
+      "main": [[ { "node": "Respond - Update Success", "type": "main", "index": 0 } ]]
+    },
+
+    "Check Existence": {
+      "main": [
+        [ { "node": "Row Exists?", "type": "main", "index": 0 } ],
+        [ { "node": "Handle DB Error", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Row Exists?": {
+      "main": [
+        [ { "node": "Determine Conflict Message", "type": "main", "index": 0 } ],
+        [ { "node": "Error - Not Found", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Determine Conflict Message": {
+      "main": [[ { "node": "Error - Conflict", "type": "main", "index": 0 } ]]
+    },
+
+    "Handle DB Error": {
+      "main": [[ { "node": "Respond - Server Error", "type": "main", "index": 0 } ]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
