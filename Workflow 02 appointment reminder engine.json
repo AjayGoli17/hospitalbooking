@@ -1,0 +1,403 @@
+{
+  "name": "Workflow 02 - Appointment Reminder Engine",
+  "nodes": [
+    {
+      "id": "node-schedule-trigger",
+      "name": "Every 15 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-800, 0],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-fetch-appointments",
+      "name": "Fetch Upcoming Appointments",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [-580, 0],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  a.appointment_id,\n  p.patient_name,\n  p.whatsapp_number,\n  d.doctor_name,\n  a.start_time,\n  a.end_time,\n  a.status,\n  a.reminder_6h_sent,\n  a.reminder_3h_sent,\n  a.reminder_1h_sent,\n  CASE\n    WHEN (a.start_time - NOW()) BETWEEN INTERVAL '5 hours 45 minutes' AND INTERVAL '6 hours' AND a.reminder_6h_sent = FALSE THEN '6h'\n    WHEN (a.start_time - NOW()) BETWEEN INTERVAL '2 hours 45 minutes' AND INTERVAL '3 hours' AND a.reminder_3h_sent = FALSE THEN '3h'\n    WHEN (a.start_time - NOW()) BETWEEN INTERVAL '45 minutes' AND INTERVAL '1 hour' AND a.reminder_1h_sent = FALSE THEN '1h'\n  END AS reminder_type\nFROM appointments a\nJOIN doctors d ON d.doctor_id = a.doctor_id\nJOIN patients p ON p.patient_id = a.patient_id\nWHERE a.status = 'SCHEDULED'\n  AND (\n    ((a.start_time - NOW()) BETWEEN INTERVAL '5 hours 45 minutes' AND INTERVAL '6 hours' AND a.reminder_6h_sent = FALSE)\n    OR ((a.start_time - NOW()) BETWEEN INTERVAL '2 hours 45 minutes' AND INTERVAL '3 hours' AND a.reminder_3h_sent = FALSE)\n    OR ((a.start_time - NOW()) BETWEEN INTERVAL '45 minutes' AND INTERVAL '1 hour' AND a.reminder_1h_sent = FALSE)\n  );",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "node-split-reminder-type",
+      "name": "Split Reminder Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [-360, 0],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.reminder_type }}",
+                    "rightValue": "6h",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "6h"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.reminder_type }}",
+                    "rightValue": "3h",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "3h"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.reminder_type }}",
+                    "rightValue": "1h",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "1h"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-prepare-6h",
+      "name": "Prepare 6h Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-140, -260],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const j = item.json;\n\n  const startTime = new Date(j.start_time);\n\n  const formattedTime = new Intl.DateTimeFormat('en-IN', {\n    hour: 'numeric',\n    minute: '2-digit',\n    hour12: true,\n    timeZone: 'Asia/Kolkata'\n  }).format(startTime);\n\n  const message_text = `\ud83d\udd14 Reminder: Your appointment with Dr ${j.doctor_name} is in 6 hours at ${formattedTime}.`;\n\n  return {\n    json: {\n      appointment_id: j.appointment_id,\n      whatsapp_number: j.whatsapp_number,\n      doctor_name: j.doctor_name,\n      start_time: j.start_time,\n      reminder_type: j.reminder_type,\n      message_text\n    }\n  };\n});"
+      }
+    },
+    {
+      "id": "node-prepare-3h",
+      "name": "Prepare 3h Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-140, 0],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const j = item.json;\n\n  const startTime = new Date(j.start_time);\n\n  const formattedTime = new Intl.DateTimeFormat('en-IN', {\n    hour: 'numeric',\n    minute: '2-digit',\n    hour12: true,\n    timeZone: 'Asia/Kolkata'\n  }).format(startTime);\n\n  const message_text = `\ud83d\udd14 Reminder: Your appointment with Dr ${j.doctor_name} is in 3 hours at ${formattedTime}.`;\n\n  return {\n    json: {\n      appointment_id: j.appointment_id,\n      whatsapp_number: j.whatsapp_number,\n      doctor_name: j.doctor_name,\n      start_time: j.start_time,\n      reminder_type: j.reminder_type,\n      message_text\n    }\n  };\n});"
+      }
+    },
+    {
+      "id": "node-prepare-1h",
+      "name": "Prepare 1h Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-140, 260],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const j = item.json;\n\n  const startTime = new Date(j.start_time);\n\n  const formattedTime = new Intl.DateTimeFormat('en-IN', {\n    hour: 'numeric',\n    minute: '2-digit',\n    hour12: true,\n    timeZone: 'Asia/Kolkata'\n  }).format(startTime);\n\n  const message_text = `\ud83d\udd14 Reminder: Your appointment with Dr ${j.doctor_name} is in 1 hour at ${formattedTime}.`;\n\n  return {\n    json: {\n      appointment_id: j.appointment_id,\n      whatsapp_number: j.whatsapp_number,\n      doctor_name: j.doctor_name,\n      start_time: j.start_time,\n      reminder_type: j.reminder_type,\n      message_text\n    }\n  };\n});"
+      }
+    },
+    {
+      "id": "node-send-whatsapp-6h",
+      "name": "Send WhatsApp Reminder - 6h",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [80, -260],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v20.0/YOUR_PHONE_NUMBER_ID/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"messaging_product\": \"whatsapp\", \"to\": $json.whatsapp_number, \"type\": \"text\", \"text\": { \"body\": $json.message_text } } }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "WhatsApp Business API"
+        }
+      }
+    },
+    {
+      "id": "node-send-whatsapp-3h",
+      "name": "Send WhatsApp Reminder - 3h",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [80, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v20.0/YOUR_PHONE_NUMBER_ID/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"messaging_product\": \"whatsapp\", \"to\": $json.whatsapp_number, \"type\": \"text\", \"text\": { \"body\": $json.message_text } } }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "WhatsApp Business API"
+        }
+      }
+    },
+    {
+      "id": "node-send-whatsapp-1h",
+      "name": "Send WhatsApp Reminder - 1h",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [80, 260],
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v20.0/YOUR_PHONE_NUMBER_ID/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"messaging_product\": \"whatsapp\", \"to\": $json.whatsapp_number, \"type\": \"text\", \"text\": { \"body\": $json.message_text } } }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "WhatsApp Business API"
+        }
+      }
+    },
+    {
+      "id": "node-mark-6h",
+      "name": "Mark 6h Reminder Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, -260],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE appointments SET reminder_6h_sent = TRUE, updated_at = NOW() WHERE appointment_id = $1;",
+        "options": {
+          "queryReplacement": "={{ [ $('Prepare 6h Message').item.json.appointment_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "node-mark-3h",
+      "name": "Mark 3h Reminder Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 0],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE appointments SET reminder_3h_sent = TRUE, updated_at = NOW() WHERE appointment_id = $1;",
+        "options": {
+          "queryReplacement": "={{ [ $('Prepare 3h Message').item.json.appointment_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "node-mark-1h",
+      "name": "Mark 1h Reminder Sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 260],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE appointments SET reminder_1h_sent = TRUE, updated_at = NOW() WHERE appointment_id = $1;",
+        "options": {
+          "queryReplacement": "={{ [ $('Prepare 1h Message').item.json.appointment_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "1",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 15 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Fetch Upcoming Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Upcoming Appointments": {
+      "main": [
+        [
+          {
+            "node": "Split Reminder Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Reminder Type": {
+      "main": [
+        [
+          {
+            "node": "Prepare 6h Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare 3h Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare 1h Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare 6h Message": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reminder - 6h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare 3h Message": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reminder - 3h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare 1h Message": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reminder - 1h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reminder - 6h": {
+      "main": [
+        [
+          {
+            "node": "Mark 6h Reminder Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reminder - 3h": {
+      "main": [
+        [
+          {
+            "node": "Mark 3h Reminder Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reminder - 1h": {
+      "main": [
+        [
+          {
+            "node": "Mark 1h Reminder Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
