@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CityCare Hospital — Reception Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   CITYCARE HOSPITAL — RECEPTION PORTAL
+   Design tokens
+   ========================================================= */
+:root{
+  --navy-950:#0A2240;
+  --navy-900:#0F2E52;
+  --navy-800:#173E68;
+  --navy-700:#22507F;
+  --teal-600:#0B7F79;
+  --teal-500:#0FA39A;
+  --teal-100:#E1F4F1;
+  --bg:#F2F5F8;
+  --surface:#FFFFFF;
+  --border:#E3E8EE;
+  --border-strong:#CBD5E1;
+  --text-900:#16212F;
+  --text-700:#3C4A5A;
+  --text-500:#647589;
+  --text-400:#8C99A8;
+  --green-700:#0F7A54;
+  --green-100:#E3F5EC;
+  --amber-700:#B36A08;
+  --amber-100:#FBEEDA;
+  --gray-500:#94A3B8;
+  --gray-100:#EEF1F5;
+  --red-600:#C33B3B;
+  --red-100:#FBEAEA;
+  --radius-sm:8px;
+  --radius-md:12px;
+  --radius-lg:18px;
+  --shadow-card: 0 1px 2px rgba(15,32,58,0.04), 0 8px 24px -12px rgba(15,32,58,0.10);
+  --shadow-pop: 0 16px 40px -12px rgba(10,34,64,0.28);
+  --font-head:'Manrope',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --sidebar-w:248px;
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:var(--font-body);
+  background:var(--bg);
+  color:var(--text-900);
+  -webkit-font-smoothing:antialiased;
+  font-size:14px;
+  line-height:1.5;
+}
+h1,h2,h3,h4{font-family:var(--font-head);margin:0;color:var(--navy-950);}
+p{margin:0;}
+button{font-family:inherit;}
+input,select{font-family:inherit;font-size:14px;}
+a{color:inherit;text-decoration:none;}
+ul{margin:0;padding:0;list-style:none;}
+svg{display:block;flex-shrink:0;}
+::selection{background:var(--teal-100);}
+:focus-visible{outline:2px solid var(--teal-500);outline-offset:2px;border-radius:4px;}
+
+.scroll-thin::-webkit-scrollbar{width:8px;height:8px;}
+.scroll-thin::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:8px;}
+.scroll-thin::-webkit-scrollbar-track{background:transparent;}
+
+/* ---------- App shell ---------- */
+.app{
+  display:flex;
+  min-height:100vh;
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  width:var(--sidebar-w);
+  flex-shrink:0;
+  background:linear-gradient(180deg,var(--navy-950) 0%, var(--navy-900) 100%);
+  color:#EAF1F8;
+  display:flex;
+  flex-direction:column;
+  position:fixed;
+  top:0;left:0;bottom:0;
+  z-index:40;
+  transition:transform .28s ease;
+}
+.sidebar-brand{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:22px 20px 18px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.brand-mark{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(145deg,var(--teal-500),var(--teal-600));
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  box-shadow:0 4px 10px -3px rgba(10,34,64,0.5);
+}
+.brand-text{display:flex;flex-direction:column;gap:1px;min-width:0;}
+.brand-name{font-family:var(--font-head);font-weight:800;font-size:15px;letter-spacing:0.1px;color:#fff;white-space:nowrap;}
+.brand-sub{font-size:11.5px;color:#9FB4CC;font-weight:500;white-space:nowrap;}
+
+.sidebar-nav{flex:1;padding:18px 12px;overflow-y:auto;}
+.nav-section-label{
+  font-size:10.5px;
+  font-weight:700;
+  color:#6E86A3;
+  padding:6px 12px 8px;
+  letter-spacing:0.06em;
+}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;
+  border-radius:10px;
+  color:#C4D3E6;
+  font-size:13.6px;
+  font-weight:600;
+  cursor:pointer;
+  margin-bottom:2px;
+  transition:background .15s ease,color .15s ease;
+  position:relative;
+}
+.nav-item svg{width:18px;height:18px;}
+.nav-item:hover{background:rgba(255,255,255,0.06);color:#fff;}
+.nav-item.active{background:rgba(15,163,154,0.16);color:#fff;}
+.nav-item.active::before{
+  content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;
+  background:var(--teal-500);border-radius:0 3px 3px 0;
+}
+.nav-item .badge-count{
+  margin-left:auto;
+  background:rgba(255,255,255,0.1);
+  color:#DCE8F5;
+  font-size:11px;font-weight:700;
+  padding:1px 7px;border-radius:20px;
+}
+
+.sidebar-bottom{
+  padding:14px 12px 18px;
+  border-top:1px solid rgba(255,255,255,0.08);
+}
+.receptionist-card{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:10px;
+  cursor:pointer;
+  transition:background .15s ease;
+}
+.receptionist-card:hover{background:rgba(255,255,255,0.06);}
+.avatar-ring{position:relative;flex-shrink:0;}
+.status-dot{
+  position:absolute;right:-1px;bottom:-1px;width:9px;height:9px;border-radius:50%;
+  border:2px solid var(--navy-900);
+}
+.rc-name{font-size:13px;font-weight:700;color:#fff;line-height:1.2;}
+.rc-role{font-size:11.5px;color:#93A9C2;}
+
+.sidebar-overlay{
+  display:none;
+  position:fixed;inset:0;background:rgba(10,20,35,0.45);
+  z-index:35;
+}
+.sidebar-overlay.show{display:block;}
+
+/* ---------- Main column ---------- */
+.main{
+  margin-left:var(--sidebar-w);
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ---------- Topbar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:20;
+  background:rgba(242,245,248,0.86);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:20px;
+  padding:16px 28px;
+}
+.topbar-left{display:flex;align-items:center;gap:14px;min-width:0;}
+.menu-toggle{
+  display:none;
+  width:36px;height:36px;border-radius:9px;border:1px solid var(--border);
+  background:var(--surface);align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+}
+.greeting-title{font-size:19px;font-weight:800;color:var(--navy-950);white-space:nowrap;}
+.greeting-sub{font-size:12.8px;color:var(--text-500);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.topbar-right{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.search-wrap{position:relative;}
+.search-box{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:8px 12px;
+  width:250px;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.search-box:focus-within{border-color:var(--teal-500);box-shadow:0 0 0 3px var(--teal-100);}
+.search-box input{border:none;outline:none;background:transparent;flex:1;color:var(--text-900);font-size:13.4px;}
+.search-box svg{color:var(--text-400);}
+.search-dropdown{
+  position:absolute;top:calc(100% + 8px);left:0;right:0;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow-pop);
+  overflow:hidden;
+  z-index:60;
+  max-height:340px;overflow-y:auto;
+}
+.search-result-group-label{padding:9px 14px 5px;font-size:10.5px;font-weight:700;color:var(--text-400);letter-spacing:0.05em;}
+.search-result-item{
+  display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;
+}
+.search-result-item:hover{background:var(--gray-100);}
+.search-result-name{font-size:13px;font-weight:600;color:var(--text-900);}
+.search-result-meta{font-size:11.6px;color:var(--text-500);}
+.search-empty{padding:16px 14px;font-size:12.8px;color:var(--text-500);text-align:center;}
+
+.icon-btn{
+  width:38px;height:38px;border-radius:10px;border:1px solid var(--border);
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;position:relative;color:var(--text-700);
+  transition:border-color .15s ease, color .15s ease;
+}
+.icon-btn:hover{border-color:var(--border-strong);color:var(--navy-900);}
+.notif-dot{
+  position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;
+  background:var(--red-600);border:2px solid var(--surface);
+}
+.topbar-profile{display:flex;align-items:center;gap:9px;padding-left:6px;border-left:1px solid var(--border);cursor:pointer;}
+.tp-name{font-size:13px;font-weight:700;color:var(--text-900);line-height:1.2;}
+.tp-role{font-size:11.4px;color:var(--text-500);}
+
+/* ---------- Content area ---------- */
+.content{padding:24px 28px 48px;max-width:1400px;}
+.page{display:none;}
+.page.active{display:block;animation:pageIn .22s ease;}
+@keyframes pageIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+.page-head h1{font-size:22px;font-weight:800;}
+.page-head .page-sub{font-size:13px;color:var(--text-500);margin-top:4px;}
+
+/* buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;
+  padding:9px 15px;border:1px solid transparent;transition:all .15s ease;
+  white-space:nowrap;
+}
+.btn svg{width:15px;height:15px;}
+.btn-primary{background:var(--navy-900);color:#fff;}
+.btn-primary:hover{background:var(--navy-800);}
+.btn-teal{background:var(--teal-600);color:#fff;}
+.btn-teal:hover{background:var(--teal-500);}
+.btn-outline{background:var(--surface);color:var(--text-700);border-color:var(--border-strong);}
+.btn-outline:hover{border-color:var(--navy-800);color:var(--navy-900);}
+.btn-ghost{background:transparent;color:var(--text-500);}
+.btn-ghost:hover{color:var(--navy-900);background:var(--gray-100);}
+.btn-danger-ghost{background:var(--red-100);color:var(--red-600);}
+.btn-danger-ghost:hover{background:#F6D8D8;}
+.btn-sm{padding:6px 11px;font-size:12.4px;border-radius:7px;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.link-btn{font-size:12.8px;font-weight:700;color:var(--teal-600);cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.link-btn:hover{color:var(--teal-500);}
+
+/* card base */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-card);
+}
+</style>
+<style>
+/* ---------- Stat cards ---------- */
+.stat-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px;
+}
+.stat-card{
+  padding:18px 18px 16px;
+  display:flex;flex-direction:column;gap:10px;
+  position:relative;overflow:hidden;
+}
+.stat-top{display:flex;align-items:center;justify-content:space-between;}
+.stat-icon{
+  width:36px;height:36px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+}
+.stat-icon svg{width:18px;height:18px;}
+.stat-icon.navy{background:var(--navy-900);color:#fff;}
+.stat-icon.teal{background:var(--teal-100);color:var(--teal-600);}
+.stat-icon.green{background:var(--green-100);color:var(--green-700);}
+.stat-icon.red{background:var(--red-100);color:var(--red-600);}
+.stat-trend{font-size:11.3px;font-weight:700;color:var(--text-400);}
+.stat-number{font-family:var(--font-head);font-size:27px;font-weight:800;color:var(--navy-950);}
+.stat-label{font-size:12.6px;font-weight:600;color:var(--text-700);}
+.stat-foot{font-size:11.6px;color:var(--text-400);}
+.stat-bar{height:3px;border-radius:3px;background:var(--gray-100);margin-top:2px;overflow:hidden;}
+.stat-bar>span{display:block;height:100%;border-radius:3px;}
+
+/* ---------- Dashboard grid ---------- */
+.dash-grid{display:grid;grid-template-columns:1.62fr 1fr;gap:16px;align-items:start;}
+.panel{padding:20px 20px 8px;}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:12px;}
+.panel-title{font-size:15.5px;font-weight:800;}
+.panel-sub{font-size:12.2px;color:var(--text-500);margin-top:2px;}
+
+/* timeline appointment list */
+.appt-list{display:flex;flex-direction:column;}
+.appt-row{
+  display:flex;align-items:center;gap:14px;
+  padding:13px 4px;border-top:1px solid var(--border);
+}
+.appt-list .appt-row:first-child{border-top:none;}
+.appt-time{
+  width:64px;flex-shrink:0;font-size:12.6px;font-weight:700;color:var(--navy-800);
+  font-variant-numeric:tabular-nums;
+}
+.appt-time span{display:block;font-size:10.6px;font-weight:600;color:var(--text-400);margin-top:1px;}
+.appt-person{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+.appt-info{min-width:0;}
+.appt-name{font-size:13.4px;font-weight:700;color:var(--text-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.appt-doc{font-size:12px;color:var(--text-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.appt-dept{
+  font-size:11.6px;color:var(--text-500);width:120px;flex-shrink:0;
+  display:none;
+}
+.appt-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+
+/* avatar */
+.avatar{
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-head);font-weight:700;color:#fff;flex-shrink:0;
+}
+.avatar-28{width:28px;height:28px;font-size:11px;}
+.avatar-36{width:36px;height:36px;font-size:12.5px;}
+.avatar-44{width:44px;height:44px;font-size:14px;}
+.avatar-56{width:56px;height:56px;font-size:17px;}
+
+/* status badges */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10.8px;font-weight:800;letter-spacing:0.03em;
+  padding:4px 9px;border-radius:20px;text-transform:uppercase;
+  white-space:nowrap;
+}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.badge-scheduled{background:var(--teal-100);color:var(--teal-600);}
+.badge-scheduled::before{background:var(--teal-600);}
+.badge-completed{background:var(--green-100);color:var(--green-700);}
+.badge-completed::before{background:var(--green-700);}
+.badge-cancelled{background:var(--red-100);color:var(--red-600);}
+.badge-cancelled::before{background:var(--red-600);}
+
+.dot-status{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.dot-available{background:var(--green-700);}
+.dot-busy{background:var(--amber-700);}
+.dot-offline{background:var(--gray-500);}
+.avail-text{font-size:11.6px;font-weight:700;display:inline-flex;align-items:center;gap:6px;}
+.avail-available{color:var(--green-700);}
+.avail-busy{color:var(--amber-700);}
+.avail-offline{color:var(--gray-500);}
+
+/* doctor availability list (right column) */
+.doc-avail-row{
+  display:flex;align-items:center;gap:11px;padding:12px 4px;border-top:1px solid var(--border);
+}
+.doc-avail-row:first-child{border-top:none;}
+.doc-avail-info{flex:1;min-width:0;}
+.doc-avail-name{font-size:13.2px;font-weight:700;color:var(--text-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-avail-spec{font-size:11.6px;color:var(--text-500);}
+.doc-avail-right{text-align:right;flex-shrink:0;}
+.doc-avail-count{font-size:11.4px;color:var(--text-500);margin-bottom:3px;}
+
+/* generic table */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table.data-table{width:100%;border-collapse:collapse;min-width:640px;}
+.data-table thead th{
+  text-align:left;font-size:11px;font-weight:700;color:var(--text-400);
+  letter-spacing:0.04em;text-transform:uppercase;
+  padding:0 12px 10px;border-bottom:1px solid var(--border);white-space:nowrap;
+}
+.data-table tbody td{
+  padding:13px 12px;border-bottom:1px solid var(--border);font-size:13.2px;color:var(--text-700);
+  vertical-align:middle;
+}
+.data-table tbody tr:last-child td{border-bottom:none;}
+.data-table tbody tr{transition:background .12s ease;}
+.data-table tbody tr:hover{background:#FAFBFD;}
+.cell-person{display:flex;align-items:center;gap:10px;}
+.cell-person-name{font-weight:700;color:var(--text-900);font-size:13.2px;}
+.cell-person-sub{font-size:11.6px;color:var(--text-500);}
+.row-actions{display:flex;align-items:center;gap:6px;}
+.iconbtn-sm{
+  width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-500);
+  transition:all .15s ease;
+}
+.iconbtn-sm svg{width:15px;height:15px;}
+.iconbtn-sm:hover{border-color:var(--border-strong);color:var(--navy-900);}
+.iconbtn-sm.danger:hover{border-color:var(--red-600);color:var(--red-600);background:var(--red-100);}
+.iconbtn-sm.success:hover{border-color:var(--green-700);color:var(--green-700);background:var(--green-100);}
+
+/* filters bar */
+.filters-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;
+}
+.filter-input, .filter-select{
+  border:1px solid var(--border);background:var(--surface);border-radius:9px;
+  padding:9px 12px;font-size:13px;color:var(--text-700);
+}
+.filter-input:focus, .filter-select:focus{outline:none;border-color:var(--teal-500);box-shadow:0 0 0 3px var(--teal-100);}
+.filter-search{display:flex;align-items:center;gap:8px;flex:1;min-width:200px;max-width:320px;}
+.filter-search svg{color:var(--text-400);flex-shrink:0;}
+.filter-search input{border:none;outline:none;background:transparent;flex:1;font-size:13px;}
+.filter-search{border:1px solid var(--border);background:var(--surface);border-radius:9px;padding:9px 12px;}
+.filter-search:focus-within{border-color:var(--teal-500);box-shadow:0 0 0 3px var(--teal-100);}
+.filter-reset{font-size:12.4px;font-weight:700;color:var(--text-500);cursor:pointer;padding:8px 4px;}
+.filter-reset:hover{color:var(--red-600);}
+
+/* doctor cards grid */
+.doctor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:16px;}
+.doctor-card{padding:20px;display:flex;flex-direction:column;gap:14px;}
+.doctor-card-top{display:flex;align-items:center;gap:12px;}
+.doctor-card-name{font-size:14.6px;font-weight:800;color:var(--navy-950);}
+.doctor-card-spec{font-size:12.4px;color:var(--teal-600);font-weight:600;}
+.doctor-stat-row{display:flex;align-items:center;justify-content:space-between;font-size:12.6px;color:var(--text-500);padding-top:12px;border-top:1px solid var(--border);}
+.doctor-stat-row strong{color:var(--text-900);font-weight:700;}
+.gcal-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-500);}
+.gcal-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.gcal-connected{color:var(--green-700);}
+.gcal-connected .gcal-dot{background:var(--green-700);}
+.gcal-not .gcal-dot{background:var(--gray-500);}
+
+/* patient list */
+.patient-list{display:flex;flex-direction:column;gap:0;}
+.patient-row{
+  display:flex;align-items:center;gap:14px;padding:14px 6px;border-top:1px solid var(--border);cursor:pointer;
+  border-radius:10px;transition:background .12s ease;
+}
+.patient-row:hover{background:#FAFBFD;}
+.patient-row:first-child{border-top:none;}
+.patient-info{flex:1;min-width:0;}
+.patient-name{font-size:13.6px;font-weight:700;color:var(--text-900);}
+.patient-sub{font-size:12px;color:var(--text-500);margin-top:1px;display:flex;align-items:center;gap:5px;}
+.patient-meta{display:flex;align-items:center;gap:26px;flex-shrink:0;}
+.patient-meta-item{text-align:right;min-width:76px;}
+.patient-meta-num{font-size:13.4px;font-weight:800;color:var(--navy-950);}
+.patient-meta-label{font-size:10.8px;color:var(--text-400);font-weight:600;}
+.status-pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
+.status-pill.active{background:var(--green-100);color:var(--green-700);}
+.status-pill.inactive{background:var(--gray-100);color:var(--text-500);}
+
+/* empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:50px 20px;text-align:center;}
+.empty-icon{width:52px;height:52px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;color:var(--text-400);}
+.empty-title{font-size:14px;font-weight:700;color:var(--text-700);}
+.empty-sub{font-size:12.6px;color:var(--text-400);max-width:280px;}
+
+/* modal */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(10,20,38,0.5);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  z-index:100;opacity:0;pointer-events:none;transition:opacity .18s ease;
+}
+.modal-backdrop.show{opacity:1;pointer-events:auto;}
+.modal{
+  background:var(--surface);border-radius:18px;max-width:460px;width:100%;
+  max-height:86vh;overflow-y:auto;
+  box-shadow:var(--shadow-pop);
+  transform:translateY(10px) scale(0.98);opacity:0;transition:all .2s ease;
+}
+.modal-backdrop.show .modal{transform:translateY(0) scale(1);opacity:1;}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 20px 0;}
+.modal-close{
+  width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-500);flex-shrink:0;
+}
+.modal-close:hover{color:var(--navy-900);border-color:var(--border-strong);}
+.modal-body{padding:16px 20px 20px;}
+.modal-section-title{font-size:11px;font-weight:700;color:var(--text-400);letter-spacing:0.05em;text-transform:uppercase;margin:16px 0 8px;}
+.modal-section-title:first-child{margin-top:0;}
+.modal-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid var(--border);font-size:13px;}
+.modal-row:first-of-type{border-top:none;}
+.modal-row-label{color:var(--text-500);}
+.modal-row-value{font-weight:700;color:var(--text-900);text-align:right;}
+.modal-actions{display:flex;gap:10px;margin-top:18px;}
+.modal-actions .btn{flex:1;}
+.modal-profile{display:flex;align-items:center;gap:14px;padding-bottom:4px;}
+.history-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);font-size:12.8px;}
+.history-item:first-child{border-top:none;}
+.history-left{display:flex;flex-direction:column;gap:2px;}
+.history-doc{font-weight:700;color:var(--text-900);}
+.history-date{color:var(--text-400);font-size:11.6px;}
+
+/* toast */
+.toast-container{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:10px;z-index:200;}
+.toast{
+  display:flex;align-items:center;gap:10px;
+  background:var(--navy-950);color:#fff;
+  padding:12px 16px;border-radius:11px;font-size:13px;font-weight:600;
+  box-shadow:var(--shadow-pop);min-width:240px;max-width:340px;
+  animation:toastIn .22s ease;
+}
+.toast.success{background:var(--green-700);}
+.toast.error{background:var(--red-600);}
+.toast svg{width:17px;height:17px;flex-shrink:0;}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.toast.hide{animation:toastOut .18s ease forwards;}
+@keyframes toastOut{to{opacity:0;transform:translateX(10px);}}
+
+/* responsive */
+@media (max-width:1100px){
+  .dash-grid{grid-template-columns:1fr;}
+  .appt-dept{display:none !important;}
+}
+@media (max-width:960px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);box-shadow:var(--shadow-pop);}
+  .main{margin-left:0;}
+  .menu-toggle{display:flex;}
+  .search-box{width:180px;}
+  .greeting-sub{display:none;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width:680px){
+  .content{padding:18px 16px 40px;}
+  .topbar{padding:14px 16px;}
+  .stat-grid{grid-template-columns:1fr;}
+  .search-box{width:130px;}
+  .tp-name,.tp-role{display:none;}
+  .appt-time span{display:none;}
+  .appt-actions .btn-sm span{display:none;}
+  .doctor-grid{grid-template-columns:1fr;}
+  .patient-meta{gap:14px;}
+  .patient-meta-item:nth-child(2){display:none;}
+  .filters-bar{gap:8px;}
+  .filter-select,.filter-input{flex:1;min-width:120px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark" id="iconCross"></div>
+      <div class="brand-text">
+        <div class="brand-name">CityCare Hospital</div>
+        <div class="brand-sub">Reception Portal</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav scroll-thin">
+      <div class="nav-item active" data-page="dashboard" id="iconGrid"></div>
+      <div class="nav-item" data-page="appointments" id="iconCalendar"></div>
+      <div class="nav-item" data-page="doctors" id="iconDoctors"></div>
+      <div class="nav-item" data-page="patients" id="iconPatients"></div>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="nav-item" id="settingsRow" style="margin-bottom:6px;"></div>
+      <div class="receptionist-card" id="receptionistCard"></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu"></button>
+        <div>
+          <div class="greeting-title" id="greetingTitle">Good morning, Reception</div>
+          <div class="greeting-sub">Here's what's happening at CityCare Hospital today.</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="search-wrap">
+          <div class="search-box">
+            <span id="iconSearch"></span>
+            <input type="text" id="globalSearch" placeholder="Search patients, doctors...">
+          </div>
+          <div class="search-dropdown" id="searchDropdown" style="display:none;"></div>
+        </div>
+        <button class="icon-btn" id="notifBtn" aria-label="Notifications">
+          <span id="iconBell"></span>
+          <span class="notif-dot"></span>
+        </button>
+        <div class="topbar-profile">
+          <div class="avatar-ring">
+            <div class="avatar avatar-36" style="background:linear-gradient(145deg,#173E68,#0F2E52);">R</div>
+            <span class="status-dot" style="background:#0F7A54;"></span>
+          </div>
+          <div>
+            <div class="tp-name">Anita Kumar</div>
+            <div class="tp-role">Receptionist</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ===================== DASHBOARD PAGE ===================== -->
+      <section class="page active" id="page-dashboard">
+        <div class="stat-grid" id="statGrid"></div>
+
+        <div class="dash-grid">
+          <div class="card panel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-title">Today's Appointments</div>
+                <div class="panel-sub">Patients scheduled for today</div>
+              </div>
+              <span class="link-btn" data-goto="appointments-today">View all</span>
+            </div>
+            <div class="appt-list" id="todayApptList"></div>
+          </div>
+
+          <div class="card panel">
+            <div class="panel-head">
+              <div>
+                <div class="panel-title">Doctor Availability</div>
+                <div class="panel-sub">Live status across departments</div>
+              </div>
+            </div>
+            <div id="doctorAvailList"></div>
+          </div>
+        </div>
+
+        <div class="card panel" style="margin-top:16px;">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Upcoming Appointments</div>
+              <div class="panel-sub">Scheduled beyond today</div>
+            </div>
+            <span class="link-btn" data-goto="appointments">Open appointments</span>
+          </div>
+          <div class="table-wrap" id="upcomingTableWrap" style="padding-bottom:8px;"></div>
+        </div>
+      </section>
+
+      <!-- ===================== APPOINTMENTS PAGE ===================== -->
+      <section class="page" id="page-appointments">
+        <div class="page-head">
+          <div>
+            <h1>Appointments</h1>
+            <div class="page-sub">Manage today's and upcoming patient appointments.</div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:16px 18px;margin-bottom:16px;">
+          <div class="filters-bar">
+            <div class="filter-search">
+              <span id="iconSearch2"></span>
+              <input type="text" id="apptSearchInput" placeholder="Search patient or phone">
+            </div>
+            <input type="date" class="filter-input" id="apptDateFilter">
+            <select class="filter-select" id="apptDoctorFilter">
+              <option value="">All doctors</option>
+            </select>
+            <select class="filter-select" id="apptStatusFilter">
+              <option value="">All statuses</option>
+              <option value="SCHEDULED">Confirmed</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+            <span class="filter-reset" id="apptFilterReset">Clear filters</span>
+          </div>
+        </div>
+
+        <div class="card" style="padding:8px 18px 18px;">
+          <div class="table-wrap" id="apptTableWrap"></div>
+        </div>
+      </section>
+
+      <!-- ===================== DOCTORS PAGE ===================== -->
+      <section class="page" id="page-doctors">
+        <div class="page-head">
+          <div>
+            <h1>Doctors</h1>
+            <div class="page-sub">Directory of consulting doctors at CityCare Hospital.</div>
+          </div>
+        </div>
+        <div class="doctor-grid" id="doctorGrid"></div>
+      </section>
+
+      <!-- ===================== PATIENTS PAGE ===================== -->
+      <section class="page" id="page-patients">
+        <div class="page-head">
+          <div>
+            <h1>Patients</h1>
+            <div class="page-sub">Registered patients and their appointment history.</div>
+          </div>
+        </div>
+        <div class="card" style="padding:16px 18px;margin-bottom:16px;">
+          <div class="filter-search" style="max-width:340px;">
+            <span id="iconSearch3"></span>
+            <input type="text" id="patientSearchInput" placeholder="Search patients or WhatsApp number">
+          </div>
+        </div>
+        <div class="card" style="padding:6px 18px 8px;">
+          <div class="patient-list" id="patientList"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div class="toast-container" id="toastRoot"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   ICON LIBRARY — simple line icons, currentColor stroke
+   ========================================================= */
+const ICONS = {
+  cross: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`,
+  grid: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>`,
+  calendar: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>`,
+  doctors: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v5a4 4 0 0 0 8 0V3"/><path d="M12 12v3.5a5 5 0 0 0 5 5 .5.5 0 0 0 .5-.5v-1.5"/><circle cx="19" cy="9.5" r="2"/></svg>`,
+  patients: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M2.8 20c.7-3.4 3.2-5.4 6.2-5.4s5.5 2 6.2 5.4"/><circle cx="17.5" cy="7.5" r="2.4"/><path d="M15.6 12.4c2.6.2 4.6 2 5.2 4.7"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V19.5a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3.4a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9.5a1.7 1.7 0 0 0 1-1.5V3.4a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H20.6a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`,
+  search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="M20 20l-4.3-4.3"/></svg>`,
+  bell: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a5.5 5.5 0 0 0-5.5 5.5v3.3c0 .7-.3 1.4-.8 1.9l-1 1.1c-.6.6-.2 1.7.7 1.7h13.2c.9 0 1.3-1.1.7-1.7l-1-1.1a2.6 2.6 0 0 1-.8-1.9V9A5.5 5.5 0 0 0 12 3.5z"/><path d="M9.7 20a2.3 2.3 0 0 0 4.6 0"/></svg>`,
+  menu: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3.5 6.5h17M3.5 12h17M3.5 17.5h17"/></svg>`,
+  close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+  eye: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19.5 7"/></svg>`,
+  x: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>`,
+  chevronRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5l6.5 6.5L9 18.5"/></svg>`,
+  phone: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.8a13.5 13.5 0 0 0 6.6 6.6l2.2-2.2a1.2 1.2 0 0 1 1.2-.3 9 9 0 0 0 2.9.5 1.2 1.2 0 0 1 1.2 1.2v2.8a1.2 1.2 0 0 1-1.2 1.2A17.4 17.4 0 0 1 3 3.9a1.2 1.2 0 0 1 1.2-1.2h2.8a1.2 1.2 0 0 1 1.2 1.2 9 9 0 0 0 .5 2.9 1.2 1.2 0 0 1-.3 1.2z"/></svg>`,
+  clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>`,
+  calendarSmall: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>`,
+  activity: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12h4l2.2-6.5L13 18l2.3-6h6.2"/></svg>`,
+  userMinus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 19.5c.7-3.5 3.2-5.5 6.5-5.5s5.8 2 6.5 5.5"/><path d="M17.5 9.5h5"/></svg>`,
+  inbox: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12h4.6l1.5 2.6h4.8l1.5-2.6h4.6"/><path d="M6 5.5h12l2.5 6.5v7a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 3.5 19v-7z"/></svg>`
+};
+
+/* =========================================================
+   MOCK DATA
+   Field names mirror the Postgres schema + Workflow 03 API
+   so this layer can be swapped for real fetch() calls later.
+   ========================================================= */
+
+const AVATAR_PALETTE = [
+  ["#173E68","#0F2E52"], ["#0B7F79","#0D6862"], ["#3C6EA5","#22507F"],
+  ["#0F7A54","#0B5F41"], ["#B36A08","#8F550A"], ["#5B4B9E","#453679"],
+  ["#22507F","#0F2E52"], ["#0FA39A","#0B7F79"]
+];
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return Math.abs(h);}
+function initials(name){
+  const parts=name.replace(/^Dr\.?\s*/,"").trim().split(/\s+/);
+  return ((parts[0]?.[0]||"")+(parts[1]?.[0]||"")).toUpperCase();
+}
+function avatarGradient(name){
+  const pair=AVATAR_PALETTE[hashStr(name)%AVATAR_PALETTE.length];
+  return `linear-gradient(145deg,${pair[0]},${pair[1]})`;
+}
+function avatarHtml(name,sizeClass){
+  return `<div class="avatar ${sizeClass}" style="background:${avatarGradient(name)}">${initials(name)}</div>`;
+}
+
+// ---- reference date: "today" always tracks the real current day ----
+const NOW = new Date();
+function dateAt(dayOffset,h,m){
+  const d=new Date(NOW.getFullYear(),NOW.getMonth(),NOW.getDate()+dayOffset,h,m,0);
+  return d;
+}
+function toISO(d){return d.toISOString();}
+function ymd(d){
+  const dt = (d instanceof Date)? d : new Date(d);
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+}
+const TODAY_YMD = ymd(NOW);
+
+const DOCTORS = [
+  {doctor_id:1, doctor_name:"Dr. Rajesh Rao", specialization:"Cardiology", google_calendar_connected:true, availability:"AVAILABLE"},
+  {doctor_id:2, doctor_name:"Dr. Priya Sharma", specialization:"General Medicine", google_calendar_connected:true, availability:"BUSY"},
+  {doctor_id:3, doctor_name:"Dr. Arjun Kumar", specialization:"Dermatology", google_calendar_connected:true, availability:"AVAILABLE"},
+  {doctor_id:4, doctor_name:"Dr. Ananya Reddy", specialization:"Pediatrics", google_calendar_connected:false, availability:"OFFLINE"},
+  {doctor_id:5, doctor_name:"Dr. Vikram Singh", specialization:"Orthopedics", google_calendar_connected:true, availability:"BUSY"}
+];
+
+const PATIENTS = [
+  {patient_id:1, patient_name:"Rahul Sharma", whatsapp_number:"+91 98765 43210"},
+  {patient_id:2, patient_name:"Sneha Verma", whatsapp_number:"+91 87654 32109"},
+  {patient_id:3, patient_name:"Kiran Patel", whatsapp_number:"+91 76543 21098"},
+  {patient_id:4, patient_name:"Meera Nair", whatsapp_number:"+91 90123 45678"},
+  {patient_id:5, patient_name:"Arun Das", whatsapp_number:"+91 91234 56789"},
+  {patient_id:6, patient_name:"Divya Iyer", whatsapp_number:"+91 92345 67890"},
+  {patient_id:7, patient_name:"Rohan Mehta", whatsapp_number:"+91 93456 78901"},
+  {patient_id:8, patient_name:"Ananya Joshi", whatsapp_number:"+91 94567 89012"},
+  {patient_id:9, patient_name:"Sanjay Gupta", whatsapp_number:"+91 95678 90123"}
+];
+
+// appointments: today (mixed statuses) + upcoming (2 days ahead)
+let _apptSeq=1;
+function mkAppt(dayOffset,h,m,durMin,patient_id,doctor_id,status){
+  const start=dateAt(dayOffset,h,m);
+  const end=new Date(start.getTime()+durMin*60000);
+  return {
+    appointment_id:_apptSeq++,
+    patient_id, doctor_id,
+    start_time: toISO(start),
+    end_time: toISO(end),
+    status,
+    updated_at: toISO(start)
+  };
+}
+
+const APPOINTMENTS = [
+  // ---- today ----
+  mkAppt(0, 9,0,30, 1,1,"SCHEDULED"),
+  mkAppt(0, 9,30,20, 2,2,"COMPLETED"),
+  mkAppt(0, 10,0,30, 3,3,"SCHEDULED"),
+  mkAppt(0, 10,30,20, 4,2,"COMPLETED"),
+  mkAppt(0, 11,15,30, 5,5,"SCHEDULED"),
+  mkAppt(0, 12,0,20, 6,4,"CANCELLED"),
+  mkAppt(0, 13,30,30, 7,1,"SCHEDULED"),
+  mkAppt(0, 14,15,20, 8,3,"SCHEDULED"),
+  mkAppt(0, 15,0,30, 9,5,"COMPLETED"),
+  mkAppt(0, 16,30,20, 1,2,"SCHEDULED"),
+  // ---- upcoming ----
+  mkAppt(1, 9,30,30, 3,1,"SCHEDULED"),
+  mkAppt(1, 11,0,20, 5,3,"SCHEDULED"),
+  mkAppt(2, 10,0,30, 2,5,"SCHEDULED"),
+  mkAppt(2, 14,0,20, 7,4,"SCHEDULED")
+];
+
+/* =========================================================
+   DATA SERVICE
+   Mirrors the shape of Workflow 03 - Reception Dashboard API
+   so mock calls can later be swapped for real fetch() calls.
+   ========================================================= */
+function clone(x){return JSON.parse(JSON.stringify(x));}
+function findDoctor(id){return DOCTORS.find(d=>d.doctor_id===id);}
+function findPatient(id){return PATIENTS.find(p=>p.patient_id===id);}
+
+function enrichAppointment(a){
+  const doc=findDoctor(a.doctor_id), pat=findPatient(a.patient_id);
+  return {
+    ...a,
+    doctor_name: doc?doc.doctor_name:"Unknown",
+    specialization: doc?doc.specialization:"",
+    patient_name: pat?pat.patient_name:"Unknown",
+    whatsapp_number: pat?pat.whatsapp_number:""
+  };
+}
+
+const dataService = {
+  getDoctors(){ return clone(DOCTORS); },
+
+  getPatients(){
+    return PATIENTS.map(p=>{
+      const history = APPOINTMENTS
+        .filter(a=>a.patient_id===p.patient_id)
+        .sort((a,b)=> new Date(b.start_time)-new Date(a.start_time))
+        .map(a=>({
+          appointment_id:a.appointment_id,
+          start_time:a.start_time,
+          status:a.status,
+          doctor_name: findDoctor(a.doctor_id)?.doctor_name || "Unknown"
+        }));
+      return {
+        ...clone(p),
+        appointment_history: history,
+        appointment_count: history.length,
+        last_appointment: history[0]? history[0].start_time : null
+      };
+    });
+  },
+
+  // filters: {date:'YYYY-MM-DD', doctor_id, status, search}
+  getAppointments(filters={}){
+    let rows = APPOINTMENTS.map(enrichAppointment);
+    if(filters.date){
+      rows = rows.filter(a=> ymd(a.start_time)===filters.date);
+    }
+    if(filters.doctor_id){
+      rows = rows.filter(a=> String(a.doctor_id)===String(filters.doctor_id));
+    }
+    if(filters.status){
+      rows = rows.filter(a=> a.status===filters.status);
+    }
+    if(filters.search){
+      const q=filters.search.trim().toLowerCase();
+      rows = rows.filter(a=>
+        a.patient_name.toLowerCase().includes(q) ||
+        a.whatsapp_number.replace(/\s+/g,"").includes(q.replace(/\s+/g,""))
+      );
+    }
+    return rows.sort((a,b)=> new Date(a.start_time)-new Date(b.start_time));
+  },
+
+  getStatistics(){
+    const today = APPOINTMENTS.filter(a=> ymd(a.start_time)===TODAY_YMD);
+    return {
+      today_total: today.length,
+      today_scheduled: today.filter(a=>a.status==="SCHEDULED").length,
+      today_completed: today.filter(a=>a.status==="COMPLETED").length,
+      today_cancelled: today.filter(a=>a.status==="CANCELLED").length
+    };
+  },
+
+  updateAppointmentStatus(appointment_id, new_status){
+    const a = APPOINTMENTS.find(x=>x.appointment_id===appointment_id);
+    if(!a) return {success:false, error:"NOT_FOUND"};
+    if(a.status!=="SCHEDULED") return {success:false, error:"CONFLICT"};
+    if(!["COMPLETED","CANCELLED"].includes(new_status)) return {success:false, error:"BAD_REQUEST"};
+    a.status = new_status;
+    a.updated_at = new Date().toISOString();
+    return {success:true, appointment: enrichAppointment(a)};
+  }
+};
+
+window.__dataService = dataService; // exposed for later API swap-in
+window.__ICONS = ICONS;
+window.__helpers = {avatarHtml, initials, ymd, TODAY_YMD, NOW};
+
+})();
+</script>
+<script>
+(function(){
+"use strict";
+const dataService = window.__dataService;
+const ICONS = window.__ICONS;
+const {avatarHtml, ymd, TODAY_YMD, NOW} = window.__helpers;
+
+/* ---------------- formatting helpers ---------------- */
+function formatTime(iso){
+  const d=new Date(iso);
+  let h=d.getHours(), m=d.getMinutes();
+  const ampm = h>=12 ? "PM":"AM";
+  h = h % 12; if(h===0) h=12;
+  return `${h}:${String(m).padStart(2,"0")} ${ampm}`;
+}
+function dayLabel(iso){
+  const day = ymd(iso);
+  const tmr = new Date(); tmr.setDate(tmr.getDate()+1);
+  if(day===TODAY_YMD) return "Today";
+  if(day===ymd(tmr)) return "Tomorrow";
+  const d=new Date(iso);
+  return d.toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"});
+}
+function fullDate(iso){
+  const d=new Date(iso);
+  return d.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+}
+function statusLabel(s){ return s==="SCHEDULED" ? "Confirmed" : s==="COMPLETED" ? "Completed" : "Cancelled"; }
+function statusBadgeClass(s){ return s==="SCHEDULED" ? "badge-scheduled" : s==="COMPLETED" ? "badge-completed" : "badge-cancelled"; }
+function availClass(a){ return a==="AVAILABLE"?"available": a==="BUSY"?"busy":"offline"; }
+function availLabel(a){ return a==="AVAILABLE"?"Available": a==="BUSY"?"Busy":"Offline"; }
+function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function doctorTodayCount(doctor_id){
+  return dataService.getAppointments({date:TODAY_YMD, doctor_id})
+    .filter(a=>a.status!=="CANCELLED").length;
+}
+
+/* ---------------- sidebar / nav ---------------- */
+const NAV_ITEMS = [
+  {key:"dashboard", label:"Dashboard", icon:"grid"},
+  {key:"appointments", label:"Appointments", icon:"calendar"},
+  {key:"doctors", label:"Doctors", icon:"doctors"},
+  {key:"patients", label:"Patients", icon:"patients"}
+];
+
+function renderSidebarChrome(){
+  document.getElementById("iconCross").innerHTML = ICONS.cross;
+
+  document.querySelectorAll(".nav-item[data-page]").forEach(el=>{
+    const key = el.dataset.page;
+    const item = NAV_ITEMS.find(n=>n.key===key);
+    if(!item) return;
+    let extra = "";
+    if(key==="appointments"){
+      const pending = dataService.getStatistics().today_scheduled;
+      if(pending>0) extra = `<span class="badge-count">${pending}</span>`;
+    }
+    el.innerHTML = `${ICONS[item.icon]}<span>${item.label}</span>${extra}`;
+  });
+
+  document.getElementById("settingsRow").innerHTML = `${ICONS.settings}<span>Settings</span>`;
+  document.getElementById("receptionistCard").innerHTML = `
+    <div class="avatar-ring">
+      ${avatarHtml("Anita Kumar","avatar-36")}
+      <span class="status-dot" style="background:#0F7A54;"></span>
+    </div>
+    <div>
+      <div class="rc-name">Anita Kumar</div>
+      <div class="rc-role">Receptionist</div>
+    </div>`;
+
+  document.getElementById("iconSearch").innerHTML = ICONS.search;
+  document.getElementById("iconSearch2").innerHTML = ICONS.search;
+  document.getElementById("iconSearch3").innerHTML = ICONS.search;
+  document.getElementById("iconBell").innerHTML = ICONS.bell;
+  document.getElementById("menuToggle").innerHTML = ICONS.menu;
+
+  const hour = NOW_HOUR();
+  const greetWord = hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
+  document.getElementById("greetingTitle").textContent = `${greetWord}, Reception`;
+}
+function NOW_HOUR(){ return new Date().getHours(); }
+
+/* ---------------- page switching ---------------- */
+let currentApptFilters = {date:"", doctor_id:"", status:"", search:""};
+
+function switchPage(key){
+  document.querySelectorAll(".page").forEach(p=> p.classList.toggle("active", p.id===`page-${key}`));
+  document.querySelectorAll(".nav-item[data-page]").forEach(el=> el.classList.toggle("active", el.dataset.page===key));
+  closeMobileSidebar();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+document.addEventListener("click",(e)=>{
+  const nav = e.target.closest(".nav-item[data-page]");
+  if(nav){ switchPage(nav.dataset.page); }
+
+  const goto = e.target.closest("[data-goto]");
+  if(goto){
+    const target = goto.dataset.goto;
+    if(target==="appointments-today"){
+      currentApptFilters = {date:TODAY_YMD, doctor_id:"", status:"", search:""};
+      applyApptFiltersToInputs();
+      renderAppointmentsTable();
+      switchPage("appointments");
+    } else {
+      switchPage(target);
+    }
+  }
+});
+
+/* =========================================================
+   DASHBOARD PAGE
+   ========================================================= */
+function renderDashboard(){
+  renderStatCards();
+  renderTodayApptList();
+  renderDoctorAvailability();
+  renderUpcomingTable();
+}
+
+function renderStatCards(){
+  const s = dataService.getStatistics();
+  const pct = (n)=> s.today_total ? Math.round((n/s.today_total)*100) : 0;
+  const cards = [
+    {label:"Today's Appointments", num:s.today_total, icon:"calendar", cls:"navy",
+      foot:`Across ${dataService.getDoctors().length} doctors`, bar:"#0FA39A", pct:100},
+    {label:"Confirmed", num:s.today_scheduled, icon:"clock", cls:"teal",
+      foot:`${s.today_scheduled} awaiting visit`, bar:"#0FA39A", pct:pct(s.today_scheduled)},
+    {label:"Completed", num:s.today_completed, icon:"check", cls:"green",
+      foot:"Visits finished today", bar:"#0F7A54", pct:pct(s.today_completed)},
+    {label:"Cancelled", num:s.today_cancelled, icon:"x", cls:"red",
+      foot:"Slots freed today", bar:"#C33B3B", pct:pct(s.today_cancelled)}
+  ];
+  document.getElementById("statGrid").innerHTML = cards.map(c=>`
+    <div class="card stat-card">
+      <div class="stat-top">
+        <div class="stat-icon ${c.cls}">${ICONS[c.icon]}</div>
+      </div>
+      <div class="stat-number">${c.num}</div>
+      <div class="stat-label">${c.label}</div>
+      <div class="stat-foot">${c.foot}</div>
+      <div class="stat-bar"><span style="width:${c.pct}%;background:${c.bar};"></span></div>
+    </div>
+  `).join("");
+}
+
+function renderTodayApptList(){
+  const rows = dataService.getAppointments({date:TODAY_YMD}).slice(0,6);
+  const el = document.getElementById("todayApptList");
+  if(!rows.length){ el.innerHTML = emptyState("calendarSmall","No appointments today","New bookings for today will appear here."); return; }
+  el.innerHTML = rows.map(a=>`
+    <div class="appt-row">
+      <div class="appt-time">${formatTime(a.start_time)}</div>
+      <div class="appt-person">
+        ${avatarHtml(a.patient_name,"avatar-36")}
+        <div class="appt-info">
+          <div class="appt-name">${escapeHtml(a.patient_name)}</div>
+          <div class="appt-doc">${escapeHtml(a.doctor_name)} · ${escapeHtml(a.specialization)}</div>
+        </div>
+      </div>
+      <span class="badge ${statusBadgeClass(a.status)}">${statusLabel(a.status)}</span>
+      <div class="appt-actions">
+        <button class="iconbtn-sm" data-view-appt="${a.appointment_id}" aria-label="View appointment">${ICONS.eye}</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderDoctorAvailability(){
+  const order = {AVAILABLE:0, BUSY:1, OFFLINE:2};
+  const docs = dataService.getDoctors().sort((a,b)=> order[a.availability]-order[b.availability]);
+  document.getElementById("doctorAvailList").innerHTML = docs.map(d=>`
+    <div class="doc-avail-row">
+      ${avatarHtml(d.doctor_name,"avatar-36")}
+      <div class="doc-avail-info">
+        <div class="doc-avail-name">${escapeHtml(d.doctor_name)}</div>
+        <div class="doc-avail-spec">${escapeHtml(d.specialization)}</div>
+      </div>
+      <div class="doc-avail-right">
+        <div class="doc-avail-count">${doctorTodayCount(d.doctor_id)} appts</div>
+        <div class="avail-text avail-${availClass(d.availability)}">
+          <span class="dot-status dot-${availClass(d.availability)}"></span>${availLabel(d.availability)}
+        </div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderUpcomingTable(){
+  const rows = dataService.getAppointments().filter(a=> ymd(a.start_time)!==TODAY_YMD);
+  const wrap = document.getElementById("upcomingTableWrap");
+  if(!rows.length){ wrap.innerHTML = emptyState("calendarSmall","No upcoming appointments","New bookings past today will show up in this table."); return; }
+  wrap.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>Time</th><th>Patient</th><th>Doctor</th><th>Department</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+        ${rows.map(a=>`
+          <tr>
+            <td><strong>${dayLabel(a.start_time)}</strong><br><span style="color:var(--text-400);font-size:11.6px;">${formatTime(a.start_time)}</span></td>
+            <td>
+              <div class="cell-person">
+                ${avatarHtml(a.patient_name,"avatar-28")}
+                <div>
+                  <div class="cell-person-name">${escapeHtml(a.patient_name)}</div>
+                  <div class="cell-person-sub">${escapeHtml(a.whatsapp_number)}</div>
+                </div>
+              </div>
+            </td>
+            <td>${escapeHtml(a.doctor_name)}</td>
+            <td>${escapeHtml(a.specialization)}</td>
+            <td><span class="badge ${statusBadgeClass(a.status)}">${statusLabel(a.status)}</span></td>
+            <td><button class="iconbtn-sm" data-view-appt="${a.appointment_id}" aria-label="View">${ICONS.eye}</button></td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>`;
+}
+
+function emptyState(icon,title,sub){
+  return `<div class="empty-state">
+    <div class="empty-icon">${ICONS[icon]}</div>
+    <div class="empty-title">${title}</div>
+    <div class="empty-sub">${sub}</div>
+  </div>`;
+}
+
+/* =========================================================
+   APPOINTMENTS PAGE
+   ========================================================= */
+function initAppointmentsPage(){
+  const doctorSelect = document.getElementById("apptDoctorFilter");
+  doctorSelect.innerHTML = `<option value="">All doctors</option>` +
+    dataService.getDoctors().map(d=>`<option value="${d.doctor_id}">${escapeHtml(d.doctor_name)}</option>`).join("");
+
+  document.getElementById("apptSearchInput").addEventListener("input", e=>{
+    currentApptFilters.search = e.target.value; renderAppointmentsTable();
+  });
+  document.getElementById("apptDateFilter").addEventListener("change", e=>{
+    currentApptFilters.date = e.target.value; renderAppointmentsTable();
+  });
+  document.getElementById("apptDoctorFilter").addEventListener("change", e=>{
+    currentApptFilters.doctor_id = e.target.value; renderAppointmentsTable();
+  });
+  document.getElementById("apptStatusFilter").addEventListener("change", e=>{
+    currentApptFilters.status = e.target.value; renderAppointmentsTable();
+  });
+  document.getElementById("apptFilterReset").addEventListener("click", ()=>{
+    currentApptFilters = {date:"", doctor_id:"", status:"", search:""};
+    applyApptFiltersToInputs();
+    renderAppointmentsTable();
+  });
+}
+function applyApptFiltersToInputs(){
+  document.getElementById("apptSearchInput").value = currentApptFilters.search || "";
+  document.getElementById("apptDateFilter").value = currentApptFilters.date || "";
+  document.getElementById("apptDoctorFilter").value = currentApptFilters.doctor_id || "";
+  document.getElementById("apptStatusFilter").value = currentApptFilters.status || "";
+}
+
+function renderAppointmentsTable(){
+  const rows = dataService.getAppointments(currentApptFilters);
+  const wrap = document.getElementById("apptTableWrap");
+  if(!rows.length){
+    wrap.innerHTML = emptyState("inbox","No appointments match your filters","Try adjusting the date, doctor, or status filter.");
+    return;
+  }
+  wrap.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>Time</th><th>Patient</th><th>Doctor</th><th>Specialization</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        ${rows.map(a=>`
+          <tr>
+            <td>${formatTime(a.start_time)}</td>
+            <td>
+              <div class="cell-person">
+                ${avatarHtml(a.patient_name,"avatar-28")}
+                <div>
+                  <div class="cell-person-name">${escapeHtml(a.patient_name)}</div>
+                  <div class="cell-person-sub">${escapeHtml(a.whatsapp_number)}</div>
+                </div>
+              </div>
+            </td>
+            <td>${escapeHtml(a.doctor_name)}</td>
+            <td>${escapeHtml(a.specialization)}</td>
+            <td>${dayLabel(a.start_time)}</td>
+            <td><span class="badge ${statusBadgeClass(a.status)}">${statusLabel(a.status)}</span></td>
+            <td>
+              <div class="row-actions">
+                <button class="iconbtn-sm" data-view-appt="${a.appointment_id}" aria-label="View">${ICONS.eye}</button>
+                ${a.status==="SCHEDULED" ? `
+                  <button class="iconbtn-sm success" data-complete-appt="${a.appointment_id}" aria-label="Complete">${ICONS.check}</button>
+                  <button class="iconbtn-sm danger" data-cancel-appt="${a.appointment_id}" aria-label="Cancel">${ICONS.x}</button>
+                ` : ``}
+              </div>
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>`;
+}
+
+/* =========================================================
+   DOCTORS PAGE
+   ========================================================= */
+function renderDoctorsPage(){
+  const docs = dataService.getDoctors();
+  document.getElementById("doctorGrid").innerHTML = docs.map(d=>`
+    <div class="card doctor-card">
+      <div class="doctor-card-top">
+        ${avatarHtml(d.doctor_name,"avatar-56")}
+        <div>
+          <div class="doctor-card-name">${escapeHtml(d.doctor_name)}</div>
+          <div class="doctor-card-spec">${escapeHtml(d.specialization)}</div>
+        </div>
+      </div>
+      <div class="avail-text avail-${availClass(d.availability)}">
+        <span class="dot-status dot-${availClass(d.availability)}"></span>${availLabel(d.availability)}
+      </div>
+      <div class="gcal-row ${d.google_calendar_connected? "gcal-connected":"gcal-not"}">
+        <span class="gcal-dot"></span>
+        Google Calendar — ${d.google_calendar_connected? "Connected":"Not connected"}
+      </div>
+      <div class="doctor-stat-row">
+        <span>Today's appointments</span>
+        <strong>${doctorTodayCount(d.doctor_id)}</strong>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* =========================================================
+   PATIENTS PAGE
+   ========================================================= */
+let patientSearchQuery = "";
+function initPatientsPage(){
+  document.getElementById("patientSearchInput").addEventListener("input", e=>{
+    patientSearchQuery = e.target.value; renderPatientsPage();
+  });
+}
+function isPatientActive(p){
+  const hasUpcoming = p.appointment_history.some(h=>h.status==="SCHEDULED");
+  const recentDone = p.appointment_history.some(h=> h.status==="COMPLETED" && (NOW-new Date(h.start_time))/86400000 <= 60);
+  return hasUpcoming || recentDone;
+}
+function renderPatientsPage(){
+  let patients = dataService.getPatients();
+  if(patientSearchQuery.trim()){
+    const q = patientSearchQuery.trim().toLowerCase();
+    patients = patients.filter(p=>
+      p.patient_name.toLowerCase().includes(q) ||
+      p.whatsapp_number.replace(/\s+/g,"").includes(q.replace(/\s+/g,""))
+    );
+  }
+  const el = document.getElementById("patientList");
+  if(!patients.length){ el.innerHTML = emptyState("patients","No patients found","Try a different name or WhatsApp number."); return; }
+  el.innerHTML = patients.map(p=>{
+    const active = isPatientActive(p);
+    return `
+    <div class="patient-row" data-open-patient="${p.patient_id}">
+      ${avatarHtml(p.patient_name,"avatar-44")}
+      <div class="patient-info">
+        <div class="patient-name">${escapeHtml(p.patient_name)}</div>
+        <div class="patient-sub">${ICONS.phone.replace('viewBox="0 0 24 24"','viewBox="0 0 24 24" width="12" height="12"')} ${escapeHtml(p.whatsapp_number)}</div>
+      </div>
+      <div class="patient-meta">
+        <div class="patient-meta-item">
+          <div class="patient-meta-num">${p.appointment_count}</div>
+          <div class="patient-meta-label">Visits</div>
+        </div>
+        <div class="patient-meta-item">
+          <div class="patient-meta-num" style="font-size:12px;">${p.last_appointment? dayLabel(p.last_appointment):"—"}</div>
+          <div class="patient-meta-label">Last visit</div>
+        </div>
+        <span class="status-pill ${active?"active":"inactive"}">${active?"Active":"Inactive"}</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* =========================================================
+   MODALS
+   ========================================================= */
+function openModal(html){
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = `<div class="modal-backdrop" id="modalBackdrop"><div class="modal">${html}</div></div>`;
+  requestAnimationFrame(()=> document.getElementById("modalBackdrop").classList.add("show"));
+  document.getElementById("modalBackdrop").addEventListener("click", e=>{
+    if(e.target.id==="modalBackdrop") closeModal();
+  });
+}
+function closeModal(){
+  const bd = document.getElementById("modalBackdrop");
+  if(!bd) return;
+  bd.classList.remove("show");
+  setTimeout(()=>{ document.getElementById("modalRoot").innerHTML = ""; }, 180);
+}
+
+function openApptModal(id){
+  const a = dataService.getAppointments().find(x=>x.appointment_id===id);
+  if(!a) return;
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-profile">
+        ${avatarHtml(a.patient_name,"avatar-56")}
+        <div>
+          <div style="font-size:15.5px;font-weight:800;">${escapeHtml(a.patient_name)}</div>
+          <div style="font-size:12.4px;color:var(--text-500);">${escapeHtml(a.whatsapp_number)}</div>
+        </div>
+      </div>
+      <button class="modal-close" id="modalCloseBtn">${ICONS.close}</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section-title">Appointment details</div>
+      <div class="modal-row"><span class="modal-row-label">Doctor</span><span class="modal-row-value">${escapeHtml(a.doctor_name)}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Specialization</span><span class="modal-row-value">${escapeHtml(a.specialization)}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Date</span><span class="modal-row-value">${fullDate(a.start_time)}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Time</span><span class="modal-row-value">${formatTime(a.start_time)} – ${formatTime(a.end_time)}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Status</span><span class="badge ${statusBadgeClass(a.status)}">${statusLabel(a.status)}</span></div>
+      ${a.status==="SCHEDULED" ? `
+        <div class="modal-actions">
+          <button class="btn btn-outline" data-cancel-appt="${a.appointment_id}">${ICONS.x}Cancel</button>
+          <button class="btn btn-teal" data-complete-appt="${a.appointment_id}">${ICONS.check}Mark completed</button>
+        </div>
+      ` : `<div class="modal-actions"><button class="btn btn-outline" id="modalCloseBtn2" style="flex:1;">Close</button></div>`}
+    </div>
+  `);
+  document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+  const closeBtn2 = document.getElementById("modalCloseBtn2");
+  if(closeBtn2) closeBtn2.addEventListener("click", closeModal);
+}
+
+function openPatientModal(id){
+  const p = dataService.getPatients().find(x=>x.patient_id===id);
+  if(!p) return;
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-profile">
+        ${avatarHtml(p.patient_name,"avatar-56")}
+        <div>
+          <div style="font-size:15.5px;font-weight:800;">${escapeHtml(p.patient_name)}</div>
+          <div style="font-size:12.4px;color:var(--text-500);">${escapeHtml(p.whatsapp_number)}</div>
+        </div>
+      </div>
+      <button class="modal-close" id="modalCloseBtn">${ICONS.close}</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-row"><span class="modal-row-label">Total visits</span><span class="modal-row-value">${p.appointment_count}</span></div>
+      <div class="modal-row"><span class="modal-row-label">Last visit</span><span class="modal-row-value">${p.last_appointment? fullDate(p.last_appointment):"No visits yet"}</span></div>
+      <div class="modal-section-title">Appointment history</div>
+      ${p.appointment_history.length ? p.appointment_history.map(h=>`
+        <div class="history-item">
+          <div class="history-left">
+            <span class="history-doc">${escapeHtml(h.doctor_name)}</span>
+            <span class="history-date">${fullDate(h.start_time)} · ${formatTime(h.start_time)}</span>
+          </div>
+          <span class="badge ${statusBadgeClass(h.status)}">${statusLabel(h.status)}</span>
+        </div>
+      `).join("") : `<div style="padding:14px 0;color:var(--text-400);font-size:12.8px;">No appointments recorded yet.</div>`}
+    </div>
+  `);
+  document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+}
+
+/* ---------------- delegated action clicks ---------------- */
+document.addEventListener("click",(e)=>{
+  const viewBtn = e.target.closest("[data-view-appt]");
+  if(viewBtn){ openApptModal(Number(viewBtn.dataset.viewAppt)); return; }
+
+  const completeBtn = e.target.closest("[data-complete-appt]");
+  if(completeBtn){
+    const id = Number(completeBtn.dataset.completeAppt);
+    const res = dataService.updateAppointmentStatus(id,"COMPLETED");
+    if(res.success){ showToast("Appointment marked as completed.","success"); closeModal(); refreshAll(); }
+    else { showToast("Could not update this appointment.","error"); }
+    return;
+  }
+  const cancelBtn = e.target.closest("[data-cancel-appt]");
+  if(cancelBtn){
+    const id = Number(cancelBtn.dataset.cancelAppt);
+    const res = dataService.updateAppointmentStatus(id,"CANCELLED");
+    if(res.success){ showToast("Appointment cancelled.","success"); closeModal(); refreshAll(); }
+    else { showToast("Could not cancel this appointment.","error"); }
+    return;
+  }
+  const patRow = e.target.closest("[data-open-patient]");
+  if(patRow){ openPatientModal(Number(patRow.dataset.openPatient)); return; }
+});
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeModal(); });
+
+/* ---------------- toasts ---------------- */
+function showToast(message,type="default"){
+  const root = document.getElementById("toastRoot");
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+  const icon = type==="success" ? ICONS.check : type==="error" ? ICONS.x : ICONS.bell;
+  el.innerHTML = `${icon}<span>${escapeHtml(message)}</span>`;
+  root.appendChild(el);
+  setTimeout(()=>{
+    el.classList.add("hide");
+    setTimeout(()=> el.remove(), 200);
+  }, 3200);
+}
+
+/* ---------------- global header search ---------------- */
+function initGlobalSearch(){
+  const input = document.getElementById("globalSearch");
+  const dropdown = document.getElementById("searchDropdown");
+
+  function render(query){
+    const q = query.trim().toLowerCase();
+    if(!q){ dropdown.style.display="none"; return; }
+    const patients = dataService.getPatients().filter(p=>
+      p.patient_name.toLowerCase().includes(q) || p.whatsapp_number.replace(/\s+/g,"").includes(q.replace(/\s+/g,""))
+    ).slice(0,4);
+    const doctors = dataService.getDoctors().filter(d=>
+      d.doctor_name.toLowerCase().includes(q) || d.specialization.toLowerCase().includes(q)
+    ).slice(0,4);
+
+    if(!patients.length && !doctors.length){
+      dropdown.innerHTML = `<div class="search-empty">No matches for "${escapeHtml(query)}"</div>`;
+      dropdown.style.display="block";
+      return;
+    }
+    let html="";
+    if(patients.length){
+      html += `<div class="search-result-group-label">Patients</div>`;
+      html += patients.map(p=>`
+        <div class="search-result-item" data-search-patient="${p.patient_id}">
+          ${avatarHtml(p.patient_name,"avatar-28")}
+          <div><div class="search-result-name">${escapeHtml(p.patient_name)}</div><div class="search-result-meta">${escapeHtml(p.whatsapp_number)}</div></div>
+        </div>`).join("");
+    }
+    if(doctors.length){
+      html += `<div class="search-result-group-label">Doctors</div>`;
+      html += doctors.map(d=>`
+        <div class="search-result-item" data-search-doctor="${d.doctor_id}">
+          ${avatarHtml(d.doctor_name,"avatar-28")}
+          <div><div class="search-result-name">${escapeHtml(d.doctor_name)}</div><div class="search-result-meta">${escapeHtml(d.specialization)}</div></div>
+        </div>`).join("");
+    }
+    dropdown.innerHTML = html;
+    dropdown.style.display="block";
+  }
+
+  input.addEventListener("input", e=> render(e.target.value));
+  input.addEventListener("focus", e=> { if(e.target.value.trim()) render(e.target.value); });
+  dropdown.addEventListener("click",(e)=>{
+    const pat = e.target.closest("[data-search-patient]");
+    if(pat){ openPatientModal(Number(pat.dataset.searchPatient)); dropdown.style.display="none"; input.value=""; return; }
+    const doc = e.target.closest("[data-search-doctor]");
+    if(doc){ switchPage("doctors"); dropdown.style.display="none"; input.value=""; }
+  });
+  document.addEventListener("click",(e)=>{
+    if(!e.target.closest(".search-wrap")) dropdown.style.display="none";
+  });
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ dropdown.style.display="none"; input.blur(); } });
+}
+
+/* ---------------- mobile sidebar ---------------- */
+function closeMobileSidebar(){
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("sidebarOverlay").classList.remove("show");
+}
+function initMobileSidebar(){
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  document.getElementById("menuToggle").addEventListener("click", ()=>{
+    sidebar.classList.add("open"); overlay.classList.add("show");
+  });
+  overlay.addEventListener("click", closeMobileSidebar);
+}
+
+/* ---------------- refresh everything ---------------- */
+function refreshAll(){
+  renderSidebarChrome();
+  renderDashboard();
+  renderAppointmentsTable();
+  renderDoctorsPage();
+  renderPatientsPage();
+}
+
+/* ---------------- init ---------------- */
+document.addEventListener("DOMContentLoaded", ()=>{
+  renderSidebarChrome();
+  renderDashboard();
+  initAppointmentsPage();
+  renderAppointmentsTable();
+  renderDoctorsPage();
+  initPatientsPage();
+  renderPatientsPage();
+  initGlobalSearch();
+  initMobileSidebar();
+});
+
+})();
+</script>
+</body>
+</html>
