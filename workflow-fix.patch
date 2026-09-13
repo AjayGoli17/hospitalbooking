@@ -1,0 +1,95 @@
+--- WhatsApp_AI_Appointment_Agent.json
++++ WhatsApp_AI_Appointment_Agent.json
+@@ -1113,6 +1113,38 @@
+             "name": "Hospital Postgres"
+           }
+         }
++      },
++      {
++        "parameters": {
++          "conditions": {
++            "options": {
++              "caseSensitive": true,
++              "leftValue": "",
++              "typeValidation": "loose"
++            },
++            "conditions": [
++              {
++                "leftValue": "={{$('Extract Webhook Fields').item.json.isTextMessage}}",
++                "rightValue": true,
++                "operator": {
++                  "type": "boolean",
++                  "operation": "equals"
++                }
++              }
++            ],
++            "combinator": "and"
++          }
++        },
++        "id": "d5f17949-4ed3-4a6f-a3d4-f263f3b527a0",
++        "name": "Was Message Inserted?",
++        "type": "n8n-nodes-base.if",
++        "typeVersion": 2,
++        "position": [
++          5760,
++          460
++        ],
++        "notes": "Gate before Mark Message Processed. Non-text messages were never inserted into messages (no message_id), so they must not reach the UPDATE ... WHERE message_id = $1 step. TRUE = text message that was inserted earlier in the flow -> mark processed. FALSE = non-text message -> end, nothing to mark.",
++        "notesInFlow": false
+       }
+     ],
+     "connections": {
+@@ -1142,7 +1174,7 @@
+         "main": [
+           [
+             {
+-              "node": "Dedupe Insert Message",
++              "node": "Is Text Message?",
+               "type": "main",
+               "index": 0
+             }
+@@ -1189,7 +1221,7 @@
+         "main": [
+           [
+             {
+-              "node": "Is Text Message?",
++              "node": "Gemini AI Agent",
+               "type": "main",
+               "index": 0
+             }
+@@ -1200,7 +1232,7 @@
+         "main": [
+           [
+             {
+-              "node": "Gemini AI Agent",
++              "node": "Dedupe Insert Message",
+               "type": "main",
+               "index": 0
+             }
+@@ -1643,13 +1675,25 @@
+         "main": [
+           [
+             {
+-              "node": "Mark Message Processed",
++              "node": "Was Message Inserted?",
+               "type": "main",
+               "index": 0
+             }
+           ]
+         ]
+       },
++      "Was Message Inserted?": {
++        "main": [
++          [
++            {
++              "node": "Mark Message Processed",
++              "type": "main",
++              "index": 0
++            }
++          ],
++          []
++        ]
++      },
+       "Appointment Inserted?": {
+         "main": [
+           [

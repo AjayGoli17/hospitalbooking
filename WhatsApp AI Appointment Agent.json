@@ -1,1086 +1,1754 @@
 {
-  "name": "Workflow 01 - Hospital WhatsApp Booking (Demo)",
-  "nodes": [
-    {
-      "parameters": {
-        "updates": [
-          "messages"
+    "name": "Workflow 01 - Hospital WhatsApp Booking (Demo)",
+    "nodes": [
+      {
+        "parameters": {
+          "updates": [
+            "messages"
+          ]
+        },
+        "id": "5c6e5283-aaa8-4eb6-aa0b-ce7431e92170",
+        "name": "WhatsApp Trigger",
+        "type": "n8n-nodes-base.whatsAppTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          300
+        ],
+        "notes": "Verify field paths against your provider's exact payload (Meta Cloud API assumed: body.entry[0].changes[0].value.messages[0]).",
+        "notesInFlow": false,
+        "credentials": {
+          "whatsAppTriggerApi": {
+            "id": "WHATSAPP_CRED_ID",
+            "name": "Hospital WhatsApp"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const root = $json ?? {};\nconst message = root.messages?.[0]\n  ?? root.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]\n  ?? root.entry?.[0]?.changes?.[0]?.value?.messages?.[0]\n  ?? null;\nconst contacts = root.contacts\n  ?? root.body?.entry?.[0]?.changes?.[0]?.value?.contacts\n  ?? root.entry?.[0]?.changes?.[0]?.value?.contacts\n  ?? [];\nconst isTextMessage = message?.type === 'text' && typeof message?.text?.body === 'string';\nreturn [{ json: {\n  waMessageId: message?.id ?? null,\n  phoneNumber: message?.from ?? null,\n  messageType: message?.type ?? null,\n  isTextMessage,\n  messageText: isTextMessage ? message.text.body.trim() : '',\n  messageTextForStorage: isTextMessage ? message.text.body : `[Non-text message received: ${message?.type ?? 'unknown'}]`,\n  profileName: contacts?.[0]?.profile?.name ?? null\n}}];"
+        },
+        "id": "edbf0cac-8c84-4ee7-b9e9-a1506b7910f7",
+        "name": "Extract Webhook Fields",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          220,
+          300
+        ],
+        "notes": "Robustly supports the common n8n WhatsApp Trigger output (messages directly) and Meta webhook envelope variants (body.entry[0].changes[0].value.messages[0]). Test once against the live trigger output."
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$json.waMessageId}}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty"
+                }
+              },
+              {
+                "leftValue": "={{$json.phoneNumber}}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "8af0b049-33d6-407e-9957-3f20cdc58026",
+        "name": "Validate Payload",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          440,
+          300
+        ],
+        "notes": "TRUE = has message id + sender. FALSE = malformed/non-message webhook (e.g. status callbacks) -> stop.",
+        "notesInFlow": false
+      },
+      {
+        "parameters": {},
+        "id": "4b088b6e-bbdd-4c7a-b91c-8aed768c8787",
+        "name": "Stop - Invalid or Non-Message Event",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          660,
+          520
         ]
       },
-      "id": "6771cc2a-d1a6-4a22-965c-98a50974472b",
-      "name": "WhatsApp Trigger",
-      "type": "n8n-nodes-base.whatsAppTrigger",
-      "typeVersion": 1,
-      "position": [
-        0,
-        300
-      ],
-      "notes": "Verify field paths against your provider's exact payload (Meta Cloud API assumed: body.entry[0].changes[0].value.messages[0]).",
-      "notesInFlow": false
-    },
-    {
-      "parameters": {
-        "mode": "manual",
-        "assignments": {
-          "assignments": [
-            {
-              "name": "messagesArray",
-              "type": "array",
-              "value": "={{$json.messages}}"
-            },
-            {
-              "name": "waMessageId",
-              "type": "string",
-              "value": "={{$json.messages?.[0]?.id}}"
-            },
-            {
-              "name": "phoneNumber",
-              "type": "string",
-              "value": "={{$json.messages?.[0]?.from}}"
-            },
-            {
-              "name": "messageText",
-              "type": "string",
-              "value": "={{$json.messages?.[0]?.text?.body}}"
-            },
-            {
-              "name": "profileName",
-              "type": "string",
-              "value": "={{$json.contacts?.[0]?.profile?.name}}"
-            }
-          ]
-        }
-      },
-      "id": "18f6baf3-9286-4c05-9140-cf20e9d8002b",
-      "name": "Extract Webhook Fields",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        220,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO messages (whatsapp_message_id, phone_number, message_text)\nVALUES ($1, $2, $3)\nON CONFLICT (whatsapp_message_id) DO NOTHING\nRETURNING message_id;",
           "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "leftValue": "={{$json.waMessageId}}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty"
-              }
-            },
-            {
-              "leftValue": "={{$json.phoneNumber}}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty"
-              }
-            }
-          ],
-          "combinator": "and"
-        }
-      },
-      "id": "ceccc3e5-d942-42e7-96d4-667ed5c8e2a1",
-      "name": "Validate Payload",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        440,
-        300
-      ],
-      "notes": "TRUE = has message id + sender. FALSE = malformed/non-message webhook (e.g. status callbacks) -> stop.",
-      "notesInFlow": false
-    },
-    {
-      "parameters": {},
-      "id": "e053e277-9656-43bb-9afc-e18816ffa102",
-      "name": "Stop - Invalid or Non-Message Event",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        660,
-        520
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO messages (whatsapp_message_id, phone_number, message_text)\nVALUES ($1, $2, $3)\nON CONFLICT (whatsapp_message_id) DO NOTHING\nRETURNING message_id;",
-        "options": {
-          "queryReplacement": "={{ [$json.waMessageId, $json.phoneNumber, $json.messageText] }}"
-        }
-      },
-      "id": "62d0ced6-6a8b-42ff-a8b0-1a6b4a74e95c",
-      "name": "Dedupe Insert Message",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        880,
-        300
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "POSTGRES_CRED_ID",
-          "name": "Hospital Postgres"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "leftValue": "={{$json.message_id}}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty"
-              }
-            }
-          ],
-          "combinator": "and"
-        }
-      },
-      "id": "ac2e82d7-c677-4894-af36-7a650910c05e",
-      "name": "Is New Message?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        1100,
-        300
-      ],
-      "notes": "TRUE = row returned = new message. FALSE = duplicate (ON CONFLICT hit nothing) -> stop.",
-      "notesInFlow": false
-    },
-    {
-      "parameters": {},
-      "id": "90df919a-7fef-46f0-81e8-9e4d0a1ac148",
-      "name": "Stop - Duplicate Message",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        1100,
-        520
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO patients (patient_name, whatsapp_number)\nVALUES ($1, $2)\nON CONFLICT (whatsapp_number)\nDO UPDATE SET patient_name = COALESCE(patients.patient_name, EXCLUDED.patient_name)\nRETURNING patient_id, patient_name, whatsapp_number;",
-        "options": {
-          "queryReplacement": "={{ [$('Extract Webhook Fields').item.json.profileName || null, $('Extract Webhook Fields').item.json.phoneNumber] }}"
-        }
-      },
-      "id": "491bfcd4-0f3c-441c-8e48-1688798b4384",
-      "name": "Find or Create Patient",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        1320,
-        300
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "POSTGRES_CRED_ID",
-          "name": "Hospital Postgres"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "modelName": "models/gemini-2.0-flash",
-        "options": {
-          "temperature": 0.2
-        }
-      },
-      "id": "8392ea0f-a425-4163-920d-3808ce43a7aa",
-      "name": "Gemini Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1,
-      "position": [
-        1280,
-        560
-      ],
-      "notes": "Select whichever free-tier Gemini model is actually listed in YOUR n8n Gemini credential/model dropdown. Do not assume a model name - pick from the live list.",
-      "notesInFlow": false,
-      "credentials": {
-        "googlePalmApi": {
-          "id": "GEMINI_CRED_ID",
-          "name": "Gemini API"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT doctor_id, doctor_name, specialization\nFROM doctors\nWHERE ($1::text IS NULL OR doctor_name ILIKE '%' || $1 || '%')\n  AND ($2::text IS NULL OR specialization ILIKE '%' || $2 || '%');",
-        "options": {
-          "queryReplacement": "={{ [$fromAI('doctor_name_query','Partial or full doctor name mentioned by patient, or empty string if not given','string'), $fromAI('specialization_query','Specialization mentioned by patient (e.g. cardiologist), or empty string if not given','string')] }}"
+            "queryReplacement": "={{ [$json.waMessageId, $json.phoneNumber, $json.messageTextForStorage] }}"
+          }
         },
-        "toolDescription": "Look up doctors by name or specialization. Read-only. Returns 0, 1, or many matches. Never assume a match; report ambiguity or no-match back to the user."
-      },
-      "id": "a9c7a25f-cd69-472d-a7c8-16b14b9bc41d",
-      "name": "Tool - Find Doctor",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        1360,
-        560
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "POSTGRES_CRED_ID",
-          "name": "Hospital Postgres"
+        "id": "465a87ef-ce7b-4f0c-aab9-d93a19a3df7c",
+        "name": "Dedupe Insert Message",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          880,
+          300
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "POSTGRES_CRED_ID",
+            "name": "Hospital Postgres"
+          }
         }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT COUNT(*) AS conflict_count\nFROM appointments\nWHERE doctor_id = $1\n  AND status = 'SCHEDULED'\n  AND start_time < $3\n  AND end_time > $2;",
-        "options": {
-          "queryReplacement": "={{ [$fromAI('doctor_id','Resolved doctor_id from Find Doctor tool','number'), $fromAI('requested_start','Requested appointment start as ISO8601 timestamp with Asia/Kolkata offset','string'), $fromAI('requested_end','Requested appointment end as ISO8601 timestamp with Asia/Kolkata offset','string')] }}"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$json.message_id}}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
         },
-        "toolDescription": "Check if a doctor has a conflicting SCHEDULED appointment in a time window. Read-only. conflict_count = 0 means free. Never state availability without calling this tool first."
+        "id": "a8a98a65-e7da-4b61-9fae-2e9ae11799c5",
+        "name": "Is New Message?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1100,
+          300
+        ],
+        "notes": "TRUE = row returned = new message. FALSE = duplicate (ON CONFLICT hit nothing) -> stop.",
+        "notesInFlow": false
       },
-      "id": "af89cb67-5432-46ea-a098-469be357e747",
-      "name": "Tool - Check Availability",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        1360,
-        680
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "POSTGRES_CRED_ID",
-          "name": "Hospital Postgres"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "={{$json.messageText}}",
-        "options": {
-          "systemMessage": "You are a hospital appointment assistant for a WhatsApp booking demo.\nAsia/Kolkata is the only timezone. Resolve relative dates (today/tomorrow/evening) against the current date given to you.\n\nYou MUST call the Find Doctor tool before naming any doctor_id.\nYou MUST call the Check Availability tool before ever saying a slot is free or occupied.\nNever invent doctor_id, calendar IDs, availability, or booking success.\nYou cannot book, cancel, or reschedule anything yourself - you only understand the request and report structured findings.\n\nAlways end your turn with ONLY a single JSON object (no prose, no markdown fences) with this exact shape:\n{\n  \"intent\": \"BOOK\" | \"AVAILABILITY_CHECK\" | \"SPECIALIZATION_SEARCH\" | \"MISSING_INFO\" | \"UNSUPPORTED\",\n  \"doctor_name\": string|null,\n  \"specialization\": string|null,\n  \"requested_date\": string|null,\n  \"requested_start_time\": string|null,  // ISO8601 with +05:30 offset\n  \"requested_end_time\": string|null,    // start + 30 min default if not stated\n  \"clarification_question\": string|null,\n  \"reply_text\": string  // natural language reply to send the patient (used only for MISSING_INFO/UNSUPPORTED/SPECIALIZATION_SEARCH-with-no-booking-yet)\n}\nIf required info (doctor OR specialization, AND date, AND time) is missing for a booking or availability question, set intent=MISSING_INFO and ask ONLY for the missing piece(s) in clarification_question.\nIf the user asks for cancellation/rescheduling, set intent=UNSUPPORTED and say this demo does not support that yet."
-        }
+      {
+        "parameters": {},
+        "id": "eaed6fc9-3481-4e55-984f-320b9f181c00",
+        "name": "Stop - Duplicate Message",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          1100,
+          520
+        ]
       },
-      "id": "d8f742e4-1d54-4e96-8629-1910e927b75d",
-      "name": "Gemini AI Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.7,
-      "position": [
-        1580,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const raw = $input.first().json.output || $input.first().json.text || '';\nlet parsed;\ntry {\n  const cleaned = raw.replace(/```json|```/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = { intent: 'UNSUPPORTED', reply_text: 'Sorry, I could not understand that. Could you rephrase?' };\n}\nreturn [{ json: parsed }];"
-      },
-      "id": "6b47c614-3ae8-4d0b-9751-cb7fccde6f42",
-      "name": "Parse Agent Output",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1800,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "expression",
-        "output": "={{ $json.intent }}",
-        "options": {}
-      },
-      "id": "bb64e393-9f7c-482e-8dfa-911075837534",
-      "name": "Intent Router",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
-      "position": [
-        2020,
-        300
-      ],
-      "notes": "Outputs matched by rule name: BOOK, AVAILABILITY_CHECK, MISSING_INFO, UNSUPPORTED, SPECIALIZATION_SEARCH (no doctor picked yet -> treat as MISSING_INFO in practice).",
-      "notesInFlow": false
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT doctor_id, doctor_name, specialization, google_calendar_id\nFROM doctors\nWHERE ($1::text IS NULL OR doctor_name ILIKE '%' || $1 || '%')\n  AND ($2::text IS NULL OR specialization ILIKE '%' || $2 || '%');",
-        "options": {
-          "queryReplacement": "={{ [$json.doctor_name || null, $json.specialization || null] }}"
-        }
-      },
-      "id": "4d94eedb-adf8-4b69-831f-ecb3917fcd30",
-      "name": "Find Doctor (Deterministic)",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        2280,
-        140
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "POSTGRES_CRED_ID",
-          "name": "Hospital Postgres"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "WITH patient AS (\n  INSERT INTO patients (patient_name, whatsapp_number)\n  VALUES ($1, $2)\n  ON CONFLICT (whatsapp_number)\n  DO UPDATE SET patient_name = COALESCE(patients.patient_name, EXCLUDED.patient_name)\n  RETURNING patient_id, patient_name, whatsapp_number\n)\nUPDATE messages AS m\nSET patient_id = p.patient_id\nFROM patient AS p\nWHERE m.message_id = $3\nRETURNING p.patient_id, p.patient_name, p.whatsapp_number;",
           "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
+            "queryReplacement": "={{ [$('Extract Webhook Fields').item.json.profileName || null, $('Extract Webhook Fields').item.json.phoneNumber, $('Dedupe Insert Message').item.json.message_id] }}"
+          }
+        },
+        "id": "68f2d026-22b8-4c0f-9936-798b077fa898",
+        "name": "Find or Create Patient",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          1320,
+          300
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "POSTGRES_CRED_ID",
+            "name": "Hospital Postgres"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$('Extract Webhook Fields').item.json.isTextMessage}}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "724bdca9-5b28-4ec1-bc87-fffa6b711e21",
+        "name": "Is Text Message?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1540,
+          300
+        ],
+        "notes": "TRUE = text message, proceed to Gemini NLU. FALSE = image/audio/document/etc -> ask patient to resend as text.",
+        "notesInFlow": false
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
+                "type": "string",
+                "value": "Sorry, I can only understand text messages right now. Could you send your appointment request as plain text (e.g. doctor/specialization, date, and time)?"
+              }
+            ]
+          }
+        },
+        "id": "e19b457d-bc48-446d-beaa-e0bff013f187",
+        "name": "Set - Non-Text Message Reply",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1760,
+          460
+        ]
+      },
+      {
+        "parameters": {
+          "modelName": "models/gemini-2.0-flash",
+          "options": {
+            "temperature": 0.2
+          }
+        },
+        "id": "451ebf7e-cdc7-4d0d-89d7-fb4f6bbfaa41",
+        "name": "Gemini Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "typeVersion": 1,
+        "position": [
+          1780,
+          140
+        ],
+        "notes": "Select whichever free-tier Gemini model is actually listed in YOUR n8n Gemini credential/model dropdown. Do not assume a model name - pick from the live list.",
+        "notesInFlow": false,
+        "credentials": {
+          "googlePalmApi": {
+            "id": "GEMINI_CRED_ID",
+            "name": "Gemini API"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "={{$('Extract Webhook Fields').item.json.messageText}}",
+          "options": {
+            "systemMessage": "=You are a hospital appointment assistant for a WhatsApp booking demo.\nAsia/Kolkata is the only timezone. The current date and time in Asia/Kolkata is {{ $now.setZone('Asia/Kolkata').toFormat('cccc, yyyy-LL-dd HH:mm') }}. Resolve all relative dates and times (today/tomorrow/Monday/tomorrow evening/etc.) against this current date/time.\n\nYou do not have access to any tools or the database. You ONLY understand the patient's natural-language request and extract structured intent/entities from it. You never decide doctor identity, availability, or booking success - deterministic backend logic handles all of that after you.\n\nDefault appointment duration is 30 minutes when only a start time is given.\n\nRequired information for BOOK or AVAILABILITY_CHECK: (doctor name OR specialization) AND a date AND a time. Do NOT ask for the patient's name - their WhatsApp number already identifies them. If any required piece is missing, set intent=MISSING_INFO and ask ONLY for the missing piece(s) in clarification_question.\n\nIf the patient is only asking about a specialization in general (e.g. \"I need a cardiologist\") with no specific date/time requested, set intent=SPECIALIZATION_SEARCH (date/time not required for this intent).\n\nIf the patient asks to cancel or reschedule an appointment, set intent=UNSUPPORTED and say in reply_text that this demo does not support that yet.\n\nAlways end your turn with ONLY a single raw JSON object (no prose, no markdown fences, no comments) with exactly this shape:\n{\n  \"intent\": \"BOOK\" | \"AVAILABILITY_CHECK\" | \"SPECIALIZATION_SEARCH\" | \"MISSING_INFO\" | \"UNSUPPORTED\",\n  \"doctor_name\": string|null,\n  \"specialization\": string|null,\n  \"requested_date\": string|null,\n  \"requested_start_time\": string|null,\n  \"requested_end_time\": string|null,\n  \"clarification_question\": string|null,\n  \"reply_text\": string|null\n}\nrequested_start_time and requested_end_time must be ISO8601 timestamps with the +05:30 offset when present. requested_end_time defaults to requested_start_time + 30 minutes if the patient did not state an end time."
+          }
+        },
+        "id": "b4abcaed-2b4d-4c53-a69d-f1957df2106a",
+        "name": "Gemini AI Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.7,
+        "position": [
+          2000,
+          140
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const DEFAULT_REPLY = \"Sorry, I could not understand that. Could you rephrase your appointment request?\";\nconst ALLOWED_INTENTS = ['BOOK', 'AVAILABILITY_CHECK', 'SPECIALIZATION_SEARCH', 'MISSING_INFO', 'UNSUPPORTED'];\n\nfunction safeDefaults(replyText) {\n  return {\n    intent: 'UNSUPPORTED',\n    doctor_name: null,\n    specialization: null,\n    requested_date: null,\n    requested_start_time: null,\n    requested_end_time: null,\n    clarification_question: null,\n    reply_text: replyText || DEFAULT_REPLY\n  };\n}\n\nconst raw = $input.first().json.output || $input.first().json.text || '';\nlet parsed;\ntry {\n  const cleaned = String(raw).replace(/```json|```/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = safeDefaults();\n}\n\nif (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !ALLOWED_INTENTS.includes(parsed.intent)) {\n  parsed = safeDefaults(parsed && typeof parsed === 'object' ? parsed.reply_text : null);\n}\n\n// Ensure every expected key exists so downstream expressions never hit undefined.\nconst merged = Object.assign(safeDefaults(parsed.reply_text), parsed);\nmerged.intent = ALLOWED_INTENTS.includes(merged.intent) ? merged.intent : 'UNSUPPORTED';\n\nreturn [{ json: merged }];"
+        },
+        "id": "15cf6bc4-fc1a-47a1-bd86-bfe10cb7a8cc",
+        "name": "Parse Agent Output",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2220,
+          140
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "rules",
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{$json.intent}}",
+                      "rightValue": "BOOK",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "BOOK"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{$json.intent}}",
+                      "rightValue": "AVAILABILITY_CHECK",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "AVAILABILITY_CHECK"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{$json.intent}}",
+                      "rightValue": "SPECIALIZATION_SEARCH",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "SPECIALIZATION_SEARCH"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{$json.intent}}",
+                      "rightValue": "MISSING_INFO",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "MISSING_INFO"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict"
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{$json.intent}}",
+                      "rightValue": "UNSUPPORTED",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "UNSUPPORTED"
+              }
+            ]
           },
-          "conditions": [
-            {
-              "leftValue": "={{$json.length}}",
-              "rightValue": 1,
-              "operator": {
+          "options": {
+            "fallbackOutput": "extra"
+          }
+        },
+        "id": "eaf3a5f2-6e6f-4bec-91a4-5c65d19ca25d",
+        "name": "Intent Router",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3,
+        "position": [
+          2440,
+          140
+        ],
+        "notes": "Outputs in order: 0=BOOK, 1=AVAILABILITY_CHECK, 2=SPECIALIZATION_SEARCH, 3=MISSING_INFO, 4=UNSUPPORTED, 5=fallback (unrecognized intent, should not normally happen).",
+        "notesInFlow": false
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT\n  COUNT(*)::int AS match_count,\n  CASE WHEN COUNT(*) = 1 THEN MAX(doctor_id) ELSE NULL END AS doctor_id,\n  CASE WHEN COUNT(*) = 1 THEN MAX(doctor_name) ELSE NULL END AS doctor_name,\n  CASE WHEN COUNT(*) = 1 THEN MAX(specialization) ELSE NULL END AS specialization,\n  CASE WHEN COUNT(*) = 1 THEN MAX(google_calendar_id) ELSE NULL END AS google_calendar_id\nFROM doctors\nWHERE ($1::text IS NULL OR doctor_name ILIKE '%' || $1 || '%')\n  AND ($2::text IS NULL OR specialization ILIKE '%' || $2 || '%');",
+          "options": {
+            "queryReplacement": "={{ [$('Parse Agent Output').item.json.doctor_name || null, $('Parse Agent Output').item.json.specialization || null] }}"
+          }
+        },
+        "id": "1bfd137c-d326-40e9-8d36-85257d1d443b",
+        "name": "Find Doctor (Deterministic)",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          2680,
+          60
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "POSTGRES_CRED_ID",
+            "name": "Hospital Postgres"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const row = $input.first()?.json ?? {};\nconst matchCount = Number(row.match_count ?? 0);\nreturn [{ json: {\n  matchCount: Number.isFinite(matchCount) ? matchCount : 0,\n  doctor_id: row.doctor_id ?? null,\n  doctor_name: row.doctor_name ?? null,\n  specialization: row.specialization ?? null,\n  google_calendar_id: row.google_calendar_id ?? null\n}}];"
+        },
+        "id": "a1d715b8-0af8-4dd8-9902-a5db2fe4ee32",
+        "name": "Count Doctor Matches",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2900,
+          60
+        ],
+        "notes": "PostgreSQL nodes return one item per row - never trust $json.length on the query's own output item. This node collapses 0/1/many rows into a single reliable item."
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$json.matchCount}}",
+                "rightValue": 1,
+                "operator": {
+                  "type": "number",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "33192225-8864-4923-afad-ff8a49a49488",
+        "name": "Doctor Match Count",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          3120,
+          60
+        ],
+        "notes": "TRUE = exactly one match, proceed. FALSE = zero or multiple matches -> clarification message.",
+        "notesInFlow": false
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "__doctor_id",
                 "type": "number",
-                "operation": "equals"
+                "value": "={{$json.doctor_id}}"
+              },
+              {
+                "name": "__google_calendar_id",
+                "type": "string",
+                "value": "={{$json.google_calendar_id}}"
               }
-            }
-          ],
-          "combinator": "and"
-        }
-      },
-      "id": "dbf43891-731b-48c7-bab9-f03f7cd483c9",
-      "name": "Doctor Match Count",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        2500,
-        140
-      ],
-      "notes": "TRUE = exactly one match, proceed. FALSE branch further splits 0 vs many in a Code/If downstream.",
-      "notesInFlow": false
-    },
-    {
-      "parameters": {
-        "mode": "manual",
-        "assignments": {
-          "assignments": [
-            {
-              "name": "reply_text",
-              "type": "string",
-              "value": "={{ $json.length === 0 ? \"I couldn't find a matching doctor. Could you confirm the doctor's name or specialization?\" : \"I found more than one matching doctor. Could you confirm which one you mean?\" }}"
-            }
-          ]
-        }
-      },
-      "id": "d80a66a2-af6c-42f8-9b1e-0682e8c7c9b2",
-      "name": "Set - Unknown/Multiple Doctor Message",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        2500,
-        260
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT COUNT(*) AS conflict_count\nFROM appointments\nWHERE doctor_id = $1\n  AND status = 'SCHEDULED'\n  AND start_time < $3\n  AND end_time > $2;",
-        "options": {
-          "queryReplacement": "={{ [$('Intent Router').item.json.__doctor_id, $('Intent Router').item.json.requested_start_time, $('Intent Router').item.json.requested_end_time] }}"
-        }
-      },
-      "id": "39ddc6a6-c1f4-4e98-a685-3814c95d2f22",
-      "name": "Check Availability (Deterministic)",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        2760,
-        140
-      ],
-      "notes": "NOTE: wire __doctor_id from the single-match branch (Set node) before this - see connections comment in blueprint text.",
-      "notesInFlow": false,
-      "credentials": {
-        "postgres": {
-          "id": "POSTGRES_CRED_ID",
-          "name": "Hospital Postgres"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
+            ]
           },
-          "conditions": [
-            {
-              "leftValue": "={{$json.conflict_count}}",
-              "rightValue": 0,
-              "operator": {
-                "type": "number",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        }
-      },
-      "id": "a7905c7b-3070-4ffc-b8d5-bec4921a7a4d",
-      "name": "Slot Available?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        2980,
-        140
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "create",
-        "calendar": {
-          "__rl": true,
-          "mode": "id",
-          "value": "={{$('Intent Router').item.json.__google_calendar_id}}"
+          "options": {
+            "includeOtherFields": true
+          }
         },
-        "start": "={{$('Intent Router').item.json.requested_start_time}}",
-        "end": "={{$('Intent Router').item.json.requested_end_time}}",
-        "additionalFields": {
-          "summary": "=Appointment: {{$('Extract Webhook Fields').item.json.profileName || $('Extract Webhook Fields').item.json.phoneNumber}}"
-        }
+        "id": "7f2a4c1e-3b6d-4a9f-8e2c-1d5b6a7c8e9f",
+        "name": "Set - Booking Context",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          3120,
+          -140
+        ],
+        "notes": "Explicitly constructs the booking context after the unique-doctor branch: __doctor_id and __google_calendar_id, sourced from the single doctor row resolved by Count Doctor Matches. includeOtherFields keeps matchCount/doctor_name/specialization alongside them. This is the single canonical source referenced by every downstream booking node that needs doctor identity."
       },
-      "id": "a58b7439-5634-445b-834a-0270a27cb1ce",
-      "name": "Google Calendar - Create Event",
-      "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1.3,
-      "position": [
-        3240,
-        60
-      ],
-      "credentials": {
-        "googleCalendarOAuth2Api": {
-          "id": "GCAL_CRED_ID",
-          "name": "Hospital Google Calendar"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO appointments (patient_id, doctor_id, start_time, end_time, status, google_calendar_event_id)\nVALUES ($1, $2, $3, $4, 'SCHEDULED', $5)\nRETURNING appointment_id, appointment_date;",
-        "options": {
-          "queryReplacement": "={{ [$('Find or Create Patient').item.json.patient_id, $('Intent Router').item.json.__doctor_id, $('Intent Router').item.json.requested_start_time, $('Intent Router').item.json.requested_end_time, $json.id] }}"
-        }
-      },
-      "id": "a6dd6e36-65bc-4461-a774-4cd5094d8795",
-      "name": "Insert Appointment",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        3460,
-        60
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "POSTGRES_CRED_ID",
-          "name": "Hospital Postgres"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "mode": "manual",
-        "assignments": {
-          "assignments": [
-            {
-              "name": "reply_text",
-              "type": "string",
-              "value": "=Your appointment with Dr. {{$('Intent Router').item.json.doctor_name}} is confirmed for {{$('Intent Router').item.json.requested_start_time}} (Asia/Kolkata)."
-            }
-          ]
-        }
-      },
-      "id": "10da7ff8-374a-4a1c-8b56-7c7232cfe420",
-      "name": "Set - Booking Confirmed Message",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        3680,
-        60
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "manual",
-        "assignments": {
-          "assignments": [
-            {
-              "name": "reply_text",
-              "type": "string",
-              "value": "=Sorry, Dr. {{$('Intent Router').item.json.doctor_name}} is not available at that time. Could you suggest another time?"
-            }
-          ]
-        }
-      },
-      "id": "c3c3a809-50d2-4312-9c01-82f602d99327",
-      "name": "Set - Slot Unavailable Message",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        3680,
-        220
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "manual",
-        "assignments": {
-          "assignments": [
-            {
-              "name": "reply_text",
-              "type": "string",
-              "value": "=Yes, Dr. {{$('Intent Router').item.json.doctor_name}} is available at that time. Would you like me to book it?"
-            }
-          ]
-        }
-      },
-      "id": "88954da0-aa00-46de-b73d-5b8be1f37574",
-      "name": "Set - Availability Answer (Free)",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        3680,
-        340
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "manual",
-        "assignments": {
-          "assignments": [
-            {
-              "name": "reply_text",
-              "type": "string",
-              "value": "=No, Dr. {{$('Intent Router').item.json.doctor_name}} is not available at that time."
-            }
-          ]
-        }
-      },
-      "id": "c476a555-b0dd-4779-a825-ac5705f5e2b1",
-      "name": "Set - Availability Answer (Occupied)",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        3680,
-        460
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "edcd9b5c-a66a-4aed-a7e2-0b9efb2e4bdc",
-      "name": "Merge Reply Branches",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        3940,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "resource": "message",
-        "operation": "send",
-        "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
-        "recipientPhoneNumber": "={{$('Extract Webhook Fields').item.json.phoneNumber}}",
-        "textBody": "={{$json.reply_text}}"
-      },
-      "id": "702efa09-9037-4e9c-a541-40d00983733b",
-      "name": "Send WhatsApp Reply",
-      "type": "n8n-nodes-base.whatsApp",
-      "typeVersion": 1,
-      "position": [
-        4160,
-        300
-      ],
-      "credentials": {
-        "whatsAppApi": {
-          "id": "WHATSAPP_CRED_ID",
-          "name": "Hospital WhatsApp"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "UPDATE messages\nSET is_processed = TRUE, processed_at = NOW()\nWHERE message_id = $1;",
-        "options": {
-          "queryReplacement": "={{ [$('Dedupe Insert Message').item.json.message_id] }}"
-        }
-      },
-      "id": "b397cd2c-d331-4d55-bcaf-3ecc2c8355ff",
-      "name": "Mark Message Processed",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        4380,
-        300
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "POSTGRES_CRED_ID",
-          "name": "Hospital Postgres"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
-            {
-              "leftValue": "={{$('Intent Router').item.json.intent}}",
-              "rightValue": "BOOK",
-              "operator": {
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
                 "type": "string",
-                "operation": "equals"
+                "value": "={{ $json.matchCount === 0 ? \"I couldn't find a matching doctor. Could you confirm the doctor's name or specialization?\" : \"I found more than one matching doctor. Could you confirm which one you mean?\" }}"
               }
+            ]
+          }
+        },
+        "id": "373ffd13-bdac-4586-ad30-0576d0c683d5",
+        "name": "Set - Unknown/Multiple Doctor Message",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          3340,
+          220
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ (() => { const s = $('Parse Agent Output').item.json.requested_start_time; const e = $('Parse Agent Output').item.json.requested_end_time; if (!s || !e) return false; const sd = new Date(s); const ed = new Date(e); const now = new Date(); return Number.isFinite(sd.getTime()) && Number.isFinite(ed.getTime()) && ed.getTime() > sd.getTime() && sd.getTime() > now.getTime(); })() }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "88059d8e-bed0-42b7-8f58-e79007e9cc75",
+        "name": "Validate Date/Time Present",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          3340,
+          60
+        ],
+        "notes": "Defensive backend guard: requires valid parseable timestamps, end > start, and start time strictly in the future. Prevents NULL/malformed/past appointments from reaching availability or booking.",
+        "notesInFlow": false
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
+                "type": "string",
+                "value": "That date/time is missing, invalid, or already in the past. Please send a future appointment date and time (for example, tomorrow at 6 PM)."
+              }
+            ]
+          }
+        },
+        "id": "c52face2-695a-4051-a037-5fa67cfee219",
+        "name": "Set - Missing DateTime Message",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          3560,
+          220
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT COUNT(*) AS conflict_count\nFROM appointments\nWHERE doctor_id = $1\n  AND status = 'SCHEDULED'\n  AND start_time < $3\n  AND end_time > $2;",
+          "options": {
+            "queryReplacement": "={{ [$('Set - Booking Context').item.json.__doctor_id, $('Parse Agent Output').item.json.requested_start_time, $('Parse Agent Output').item.json.requested_end_time] }}"
+          }
+        },
+        "id": "f8903fd9-cdf3-4804-8f39-ea75a5f0fe7e",
+        "name": "Check Availability (Deterministic)",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          3780,
+          60
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "POSTGRES_CRED_ID",
+            "name": "Hospital Postgres"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$json.conflict_count}}",
+                "rightValue": 0,
+                "operator": {
+                  "type": "number",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "ab4b72e8-4fff-4612-b06c-5930dd8a2896",
+        "name": "Slot Available?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          4000,
+          60
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$('Parse Agent Output').item.json.intent}}",
+                "rightValue": "BOOK",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "94586021-7540-480c-bc21-92ac84841900",
+        "name": "Is Booking Intent? (Slot Free)",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          4220,
+          -40
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$('Parse Agent Output').item.json.intent}}",
+                "rightValue": "BOOK",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "c62a1799-1af0-4627-846e-ff79b3fc01bf",
+        "name": "Is Booking Intent? (Slot Taken)",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          4220,
+          160
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "create",
+          "calendar": {
+            "__rl": true,
+            "mode": "id",
+            "value": "={{$('Set - Booking Context').item.json.__google_calendar_id}}"
+          },
+          "start": "={{$('Parse Agent Output').item.json.requested_start_time}}",
+          "end": "={{$('Parse Agent Output').item.json.requested_end_time}}",
+          "additionalFields": {
+            "summary": "=Appointment: {{$('Extract Webhook Fields').item.json.profileName || $('Extract Webhook Fields').item.json.phoneNumber}}"
+          }
+        },
+        "id": "5017d93f-795a-4bd1-831a-314d4bf4fd81",
+        "name": "Google Calendar - Create Event",
+        "type": "n8n-nodes-base.googleCalendar",
+        "typeVersion": 1.3,
+        "position": [
+          4440,
+          -100
+        ],
+        "onError": "continueErrorOutput",
+        "credentials": {
+          "googleCalendarOAuth2Api": {
+            "id": "GCAL_CRED_ID",
+            "name": "Hospital Google Calendar"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
+                "type": "string",
+                "value": "Sorry, something went wrong while scheduling that appointment. Please try again in a moment."
+              }
+            ]
+          }
+        },
+        "id": "07702e0f-7bdd-4ac4-8297-2cf76f1542b1",
+        "name": "Set - Booking Failed (Calendar Error)",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          4660,
+          -220
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "WITH inserted AS (\n  INSERT INTO appointments (\n    patient_id, doctor_id, start_time, end_time, status, google_calendar_event_id\n  )\n  SELECT $1, $2, $3, $4, 'SCHEDULED', $5\n  WHERE NOT EXISTS (\n    SELECT 1\n    FROM appointments\n    WHERE doctor_id = $2\n      AND status = 'SCHEDULED'\n      AND start_time < $4\n      AND end_time > $3\n  )\n  ON CONFLICT (doctor_id, start_time) DO NOTHING\n  RETURNING appointment_id, appointment_date\n)\nSELECT\n  EXISTS (SELECT 1 FROM inserted) AS booking_created,\n  (SELECT appointment_id FROM inserted) AS appointment_id,\n  (SELECT appointment_date FROM inserted) AS appointment_date;",
+          "options": {
+            "queryReplacement": "={{ [$('Find or Create Patient').item.json.patient_id, $('Set - Booking Context').item.json.__doctor_id, $('Parse Agent Output').item.json.requested_start_time, $('Parse Agent Output').item.json.requested_end_time, null] }}"
+          }
+        },
+        "id": "e892fa00-7637-4ddb-a45f-a252a609aafb",
+        "name": "Insert Appointment",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          4660,
+          -100
+        ],
+        "onError": "continueErrorOutput",
+        "credentials": {
+          "postgres": {
+            "id": "POSTGRES_CRED_ID",
+            "name": "Hospital Postgres"
+          }
+        },
+        "notes": "Database-first booking: this INSERT is the source of truth and runs before any Google Calendar event is created, so google_calendar_event_id is always NULL here and is saved back afterwards by 'Update Appointment Calendar Event ID'. Normal-path overlap protection is enforced again at INSERT time, so a slot that becomes occupied after the initial availability check is rejected. Since no Calendar event exists yet at this point, a lost race requires no Calendar cleanup."
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$json.booking_created}}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "188b8bdc-b2da-4904-aa1a-82e3859aac65",
+        "name": "Appointment Inserted?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          4880,
+          -100
+        ],
+        "notes": "TRUE = PostgreSQL created the appointment. FALSE = the slot was lost to a concurrent/overlapping booking; clean up the already-created Calendar event and report failure."
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
+                "type": "string",
+                "value": "=Your appointment with Dr. {{$('Count Doctor Matches').item.json.doctor_name}} is confirmed for {{$('Parse Agent Output').item.json.requested_start_time}} (Asia/Kolkata)."
+              }
+            ]
+          }
+        },
+        "id": "f369fa29-5bd6-4932-8181-52cdfdfe3297",
+        "name": "Set - Booking Confirmed Message",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          5100,
+          -160
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "UPDATE appointments\nSET status = 'CANCELLED', updated_at = NOW()\nWHERE appointment_id = $1;",
+          "options": {
+            "queryReplacement": "={{ [$('Insert Appointment').item.json.appointment_id] }}"
+          }
+        },
+        "id": "931e587c-181f-4d76-9cf6-6edbc22d8d91",
+        "name": "Cancel Appointment (Calendar Sync Failed)",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          5100,
+          20
+        ],
+        "onError": "continueRegularOutput",
+        "notes": "Database-first booking means the appointment row already exists by the time Calendar sync can fail. Best-effort cancellation of that row so it is never left SCHEDULED without a synced Calendar event. If this also fails, we still do not claim the booking succeeded.",
+        "notesInFlow": false,
+        "credentials": {
+          "postgres": {
+            "id": "POSTGRES_CRED_ID",
+            "name": "Hospital Postgres"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
+                "type": "string",
+                "value": "Sorry, that slot was just booked by someone else. Could you suggest another time?"
+              }
+            ]
+          }
+        },
+        "id": "ba6db8d3-8cab-43cb-b71a-518b71dc1c93",
+        "name": "Set - Booking Race Failure Message",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          5320,
+          20
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "UPDATE appointments\nSET google_calendar_event_id = $1\nWHERE appointment_id = $2\nRETURNING appointment_id, google_calendar_event_id;",
+          "options": {
+            "queryReplacement": "={{ [$json.id, $('Insert Appointment').item.json.appointment_id] }}"
+          }
+        },
+        "id": "ac3d26bc-b32e-4683-be5e-4ee94046fb7c",
+        "name": "Update Appointment Calendar Event ID",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          4880,
+          -240
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "POSTGRES_CRED_ID",
+            "name": "Hospital Postgres"
+          }
+        },
+        "notes": "Runs only after Google Calendar - Create Event succeeds. Saves the returned Calendar event id back onto the appointment row created earlier by Insert Appointment, using its appointment_id."
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
+                "type": "string",
+                "value": "=Sorry, Dr. {{$('Count Doctor Matches').item.json.doctor_name}} is not available at that time. Could you suggest another time?"
+              }
+            ]
+          }
+        },
+        "id": "8f3c31e7-15c0-4630-bfd0-ee65aacf014b",
+        "name": "Set - Slot Unavailable Message",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          4440,
+          100
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
+                "type": "string",
+                "value": "=Yes, Dr. {{$('Count Doctor Matches').item.json.doctor_name}} is available at that time. To book it, please send the doctor/specialization, date, and time in your booking request."
+              }
+            ]
+          }
+        },
+        "id": "6d94d990-e9f7-4314-b6c2-2facf1541005",
+        "name": "Set - Availability Answer (Free)",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          4440,
+          220
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
+                "type": "string",
+                "value": "=No, Dr. {{$('Count Doctor Matches').item.json.doctor_name}} is not available at that time."
+              }
+            ]
+          }
+        },
+        "id": "e3d22bcf-faf1-4bf4-aa11-28eaf1180008",
+        "name": "Set - Availability Answer (Occupied)",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          4440,
+          340
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT COALESCE(\n  json_agg(\n    json_build_object(\n      'doctor_id', doctor_id,\n      'doctor_name', doctor_name,\n      'specialization', specialization\n    ) ORDER BY doctor_name\n  ) FILTER (WHERE doctor_id IS NOT NULL),\n  '[]'::json\n) AS doctors\nFROM doctors\nWHERE ($1::text IS NULL OR doctor_name ILIKE '%' || $1 || '%')\n  AND ($2::text IS NULL OR specialization ILIKE '%' || $2 || '%');",
+          "options": {
+            "queryReplacement": "={{ [$json.doctor_name || null, $json.specialization || null] }}"
+          }
+        },
+        "id": "eacae936-945a-478c-8623-f3d3fb2a9604",
+        "name": "Find Doctors (Specialization Search)",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          2680,
+          460
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "POSTGRES_CRED_ID",
+            "name": "Hospital Postgres"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const row = $input.first()?.json ?? {};\nlet doctors = row.doctors ?? [];\nif (typeof doctors === 'string') {\n  try { doctors = JSON.parse(doctors); } catch { doctors = []; }\n}\nif (!Array.isArray(doctors) || doctors.length === 0) {\n  return [{ json: { reply_text: \"I couldn't find any doctors matching that specialization. Please confirm the specialization or doctor's name.\" } }];\n}\nconst names = doctors.map(d => `Dr. ${d.doctor_name} (${d.specialization})`).join(', ');\nreturn [{ json: { reply_text: `Doctors available: ${names}. If you'd like to book or check availability, send the doctor or specialization, date, and time.` } }];"
+        },
+        "id": "01299df1-3304-4d62-bdd3-75113bc62d75",
+        "name": "Format Specialization Results",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2900,
+          460
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
+                "type": "string",
+                "value": "={{ $json.clarification_question || 'Could you provide a bit more detail about your appointment request (doctor or specialization, date, and time)?' }}"
+              }
+            ]
+          }
+        },
+        "id": "5e1486df-26af-4d2a-8d19-961e32dc46b4",
+        "name": "Set - Clarification Message",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          2680,
+          620
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
+                "type": "string",
+                "value": "={{ $json.reply_text || 'Sorry, this demo cannot help with that request (e.g. cancellations/rescheduling are not supported yet).' }}"
+              }
+            ]
+          }
+        },
+        "id": "a26cc67d-1539-40ee-a3ef-f6c20b272bed",
+        "name": "Set - Unsupported Message",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          2680,
+          760
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "manual",
+          "assignments": {
+            "assignments": [
+              {
+                "name": "reply_text",
+                "type": "string",
+                "value": "Sorry, I didn't understand that request. Please send the doctor or specialization, date, and time."
+              }
+            ]
+          }
+        },
+        "id": "6c239660-160b-477e-a7bb-ecca94359fb4",
+        "name": "Set - Generic Fallback Message",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          2680,
+          900
+        ]
+      },
+      {
+        "parameters": {},
+        "id": "f410225e-d881-4f47-adfb-e0c2fac0832d",
+        "name": "Merge Reply Branches",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          5320,
+          300
+        ],
+        "notes": "This is intentionally a pass-through convergence node. Each execution follows exactly one response branch; it does not wait for all branches like a two-input Merge node would."
+      },
+      {
+        "parameters": {
+          "resource": "message",
+          "operation": "send",
+          "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+          "recipientPhoneNumber": "={{$('Extract Webhook Fields').item.json.phoneNumber}}",
+          "textBody": "={{$json.reply_text}}"
+        },
+        "id": "bb9426f3-f657-4e3e-9f49-f200630988b6",
+        "name": "Send WhatsApp Reply",
+        "type": "n8n-nodes-base.whatsApp",
+        "typeVersion": 1,
+        "position": [
+          5540,
+          300
+        ],
+        "credentials": {
+          "whatsAppApi": {
+            "id": "WHATSAPP_CRED_ID",
+            "name": "Hospital WhatsApp"
+          }
+        },
+        "notes": "Only successful sends continue to Mark Message Processed. The frozen four-table demo intentionally does not implement an outbound outbox/idempotency table; therefore distributed send-vs-database crash recovery remains a known architectural limitation."
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "UPDATE messages\nSET is_processed = TRUE, processed_at = NOW()\nWHERE message_id = $1;",
+          "options": {
+            "queryReplacement": "={{ [$('Dedupe Insert Message').item.json.message_id] }}"
+          }
+        },
+        "id": "8a73c0e8-f5e4-43ba-99ad-9170d336e1e3",
+        "name": "Mark Message Processed",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          5760,
+          300
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "POSTGRES_CRED_ID",
+            "name": "Hospital Postgres"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{$('Extract Webhook Fields').item.json.isTextMessage}}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "d5f17949-4ed3-4a6f-a3d4-f263f3b527a0",
+        "name": "Was Message Inserted?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          5760,
+          460
+        ],
+        "notes": "Gate before Mark Message Processed. Non-text messages were never inserted into messages (no message_id), so they must not reach the UPDATE ... WHERE message_id = $1 step. TRUE = text message that was inserted earlier in the flow -> mark processed. FALSE = non-text message -> end, nothing to mark.",
+        "notesInFlow": false
+      }
+    ],
+    "connections": {
+      "WhatsApp Trigger": {
+        "main": [
+          [
+            {
+              "node": "Extract Webhook Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Webhook Fields": {
+        "main": [
+          [
+            {
+              "node": "Validate Payload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate Payload": {
+        "main": [
+          [
+            {
+              "node": "Is Text Message?",
+              "type": "main",
+              "index": 0
             }
           ],
-          "combinator": "and"
-        }
-      },
-      "id": "e68a5aad-23cc-47c3-97a2-6855ffdfd342",
-      "name": "Is Booking Intent? (Slot Free)",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        3200,
-        60
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose"
-          },
-          "conditions": [
+          [
             {
-              "leftValue": "={{$('Intent Router').item.json.intent}}",
-              "rightValue": "BOOK",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
+              "node": "Stop - Invalid or Non-Message Event",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Dedupe Insert Message": {
+        "main": [
+          [
+            {
+              "node": "Is New Message?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is New Message?": {
+        "main": [
+          [
+            {
+              "node": "Find or Create Patient",
+              "type": "main",
+              "index": 0
             }
           ],
-          "combinator": "and"
-        }
+          [
+            {
+              "node": "Stop - Duplicate Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       },
-      "id": "d48cbeee-aa33-41e7-b4fe-0840fd546438",
-      "name": "Is Booking Intent? (Slot Taken)",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        3200,
-        220
-      ]
-    }
-  ],
-  "connections": {
-    "Gemini Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Gemini AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
+      "Find or Create Patient": {
+        "main": [
+          [
+            {
+              "node": "Gemini AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
         ]
-      ]
+      },
+      "Is Text Message?": {
+        "main": [
+          [
+            {
+              "node": "Dedupe Insert Message",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set - Non-Text Message Reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Non-Text Message Reply": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Gemini Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Gemini AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Gemini AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Parse Agent Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Agent Output": {
+        "main": [
+          [
+            {
+              "node": "Intent Router",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Intent Router": {
+        "main": [
+          [
+            {
+              "node": "Find Doctor (Deterministic)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Find Doctor (Deterministic)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Find Doctors (Specialization Search)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set - Clarification Message",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set - Unsupported Message",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set - Generic Fallback Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Find Doctor (Deterministic)": {
+        "main": [
+          [
+            {
+              "node": "Count Doctor Matches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Count Doctor Matches": {
+        "main": [
+          [
+            {
+              "node": "Doctor Match Count",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Doctor Match Count": {
+        "main": [
+          [
+            {
+              "node": "Set - Booking Context",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set - Unknown/Multiple Doctor Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Booking Context": {
+        "main": [
+          [
+            {
+              "node": "Validate Date/Time Present",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate Date/Time Present": {
+        "main": [
+          [
+            {
+              "node": "Check Availability (Deterministic)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set - Missing DateTime Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Unknown/Multiple Doctor Message": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Missing DateTime Message": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Availability (Deterministic)": {
+        "main": [
+          [
+            {
+              "node": "Slot Available?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slot Available?": {
+        "main": [
+          [
+            {
+              "node": "Is Booking Intent? (Slot Free)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Is Booking Intent? (Slot Taken)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Booking Intent? (Slot Free)": {
+        "main": [
+          [
+            {
+              "node": "Insert Appointment",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set - Availability Answer (Free)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Booking Intent? (Slot Taken)": {
+        "main": [
+          [
+            {
+              "node": "Set - Slot Unavailable Message",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set - Availability Answer (Occupied)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Calendar - Create Event": {
+        "main": [
+          [
+            {
+              "node": "Update Appointment Calendar Event ID",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Cancel Appointment (Calendar Sync Failed)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Appointment Calendar Event ID": {
+        "main": [
+          [
+            {
+              "node": "Set - Booking Confirmed Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Booking Failed (Calendar Error)": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Insert Appointment": {
+        "main": [
+          [
+            {
+              "node": "Appointment Inserted?",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set - Booking Race Failure Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Booking Confirmed Message": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cancel Appointment (Calendar Sync Failed)": {
+        "main": [
+          [
+            {
+              "node": "Set - Booking Failed (Calendar Error)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Booking Race Failure Message": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Slot Unavailable Message": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Availability Answer (Free)": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Availability Answer (Occupied)": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Find Doctors (Specialization Search)": {
+        "main": [
+          [
+            {
+              "node": "Format Specialization Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Specialization Results": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Clarification Message": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Unsupported Message": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set - Generic Fallback Message": {
+        "main": [
+          [
+            {
+              "node": "Merge Reply Branches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Reply Branches": {
+        "main": [
+          [
+            {
+              "node": "Send WhatsApp Reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send WhatsApp Reply": {
+        "main": [
+          [
+            {
+              "node": "Was Message Inserted?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Was Message Inserted?": {
+        "main": [
+          [
+            {
+              "node": "Mark Message Processed",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Appointment Inserted?": {
+        "main": [
+          [
+            {
+              "node": "Google Calendar - Create Event",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Set - Booking Race Failure Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
     },
-    "Tool - Find Doctor": {
-      "ai_tool": [
-        [
-          {
-            "node": "Gemini AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
+    "active": false,
+    "settings": {
+      "executionOrder": "v1"
     },
-    "Tool - Check Availability": {
-      "ai_tool": [
-        [
-          {
-            "node": "Gemini AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "WhatsApp Trigger": {
-      "main": [
-        [
-          {
-            "node": "Extract Webhook Fields",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extract Webhook Fields": {
-      "main": [
-        [
-          {
-            "node": "Validate Payload",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validate Payload": {
-      "main": [
-        [
-          {
-            "node": "Dedupe Insert Message",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Stop - Invalid or Non-Message Event",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Dedupe Insert Message": {
-      "main": [
-        [
-          {
-            "node": "Is New Message?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Is New Message?": {
-      "main": [
-        [
-          {
-            "node": "Find or Create Patient",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Stop - Duplicate Message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Find or Create Patient": {
-      "main": [
-        [
-          {
-            "node": "Gemini AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Gemini AI Agent": {
-      "main": [
-        [
-          {
-            "node": "Parse Agent Output",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Agent Output": {
-      "main": [
-        [
-          {
-            "node": "Intent Router",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Intent Router": {
-      "main": [
-        [
-          {
-            "node": "Find Doctor (Deterministic)",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Find Doctor (Deterministic)",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Merge Reply Branches",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Merge Reply Branches",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Merge Reply Branches",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Find Doctor (Deterministic)": {
-      "main": [
-        [
-          {
-            "node": "Doctor Match Count",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Doctor Match Count": {
-      "main": [
-        [
-          {
-            "node": "Check Availability (Deterministic)",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Set - Unknown/Multiple Doctor Message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set - Unknown/Multiple Doctor Message": {
-      "main": [
-        [
-          {
-            "node": "Merge Reply Branches",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Availability (Deterministic)": {
-      "main": [
-        [
-          {
-            "node": "Slot Available?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Slot Available?": {
-      "main": [
-        [
-          {
-            "node": "Is Booking Intent? (Slot Free)",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Is Booking Intent? (Slot Taken)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Google Calendar - Create Event": {
-      "main": [
-        [
-          {
-            "node": "Insert Appointment",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Insert Appointment": {
-      "main": [
-        [
-          {
-            "node": "Set - Booking Confirmed Message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set - Booking Confirmed Message": {
-      "main": [
-        [
-          {
-            "node": "Merge Reply Branches",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set - Slot Unavailable Message": {
-      "main": [
-        [
-          {
-            "node": "Merge Reply Branches",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set - Availability Answer (Free)": {
-      "main": [
-        [
-          {
-            "node": "Merge Reply Branches",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set - Availability Answer (Occupied)": {
-      "main": [
-        [
-          {
-            "node": "Merge Reply Branches",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge Reply Branches": {
-      "main": [
-        [
-          {
-            "node": "Send WhatsApp Reply",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send WhatsApp Reply": {
-      "main": [
-        [
-          {
-            "node": "Mark Message Processed",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Is Booking Intent? (Slot Free)": {
-      "main": [
-        [
-          {
-            "node": "Google Calendar - Create Event",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Set - Availability Answer (Free)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Is Booking Intent? (Slot Taken)": {
-      "main": [
-        [
-          {
-            "node": "Set - Slot Unavailable Message",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Set - Availability Answer (Occupied)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "pinData": {}
-}
+    "pinData": {}
+  }
